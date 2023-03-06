@@ -4,7 +4,15 @@ using LinearAlgebra
 using StaticArrays
 using ControlSystems
 
-include(joinpath(@__DIR__, "hexmodel.jl"))
+include("constants.jl")
+include("linear.jl")
 export LinearHexModel
+export flip_z, trans_states
+
+include("nonlinear.jl")
+export NonlinearHexModel
+
+# extras
+export basis
 
 end

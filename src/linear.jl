@@ -1,0 +1,74 @@
+#SS: [x, y, z, dx, dy, dz]
+function hex_linear()
+    A = zeros(nn,nn)
+    Bv = zeros(nn,nmFM)
+
+    A[1,7] = 1
+    A[2,8] = 1
+    A[3,9] = 1
+    A[7,5] = -g
+    A[8,4] = g
+    A[4,10] = 1
+    A[5,11] = 1
+    A[6,12] = 1
+
+    Bv[9,1] = -1/m
+    Bv[10,2] = 1/Jx
+    Bv[11,3] = 1/Jy
+    Bv[12,4] = 1/Jz
+
+    MixMat = [1                 1           1                  1             1          1       ;
+               l/2                l          l/2               -l/2           -l        -l/2      ;
+               l*sqrt(3)/2        0      -l*sqrt(3)/2     -l*sqrt(3)/2     0     l*sqrt(3)/2;
+               d/b                -d/b           d/b                 -d/b             d/b          -d/b]
+
+    B = Bv*MixMat
+    C = Matrix(I(np))
+    D = zeros(np, nm)
+
+    return (A,B,C,D)
+end
+
+function flip_z(x::AbstractVector)
+    x_out = copy(x)
+    x[3] = -x[3]
+    x[9] = -x[9]
+    return x
+end
+
+function flip_z(X::AbstractMatrix)
+    X_out = copy(X)
+    X_out[3,:] .= -X_out[3,:]
+    X_out[9,:] .= -X_out[9,:]
+    return X_out
+end
+
+function trans_states(x::AbstractVector)
+    @assert length(x) == 12
+    return x[TRANSLATIONAL_STATES]
+end
+
+function trans_states(X::AbstractMatrix)
+    @assert size(X,1) == 12
+    return X[TRANSLATIONAL_STATES, :]
+end
+
+"""
+    X = [x, y, z, ϕ, θ, ψ, dx, dy, dz, dϕ, dθ, dψ]
+"""
+Base.@kwdef struct LinearHexModel
+    "Linearized perturbation model"
+    ss::StateSpace{Continuous, Float64} = ss(hex_linear()...)
+
+    "Linearization state x̄ -> x = x̄ + δx"
+    x::Vector{Float64} = zeros(6)
+
+    "Linearization control ū -> u = ū + δu"
+    u::Vector{Float64} = fill(m*g/6, 6)
+end
+
+function basis(n,i)
+    e_i = zeros(n)
+    e_i[i] = 1
+    return e_i
+end

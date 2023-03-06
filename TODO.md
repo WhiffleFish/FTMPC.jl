@@ -1,4 +1,11 @@
 # TODO
-- Hexcopter Linear Model
-  - Ability to convert from perturbations to absolute states
-  - Simulation
+## Modeling
+- [ ] Hexcopter Linear Model
+  - [ ] Simulation
+
+## Control
+- [ ] Hex Linear
+  - [ ] Fully Observable
+    - [ ] LQR
+    - [ ] OSQP LQR
+  - [ ] Partially Observable
