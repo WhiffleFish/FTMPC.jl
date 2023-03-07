@@ -9,6 +9,9 @@ include("linear.jl")
 export LinearHexModel
 export flip_z, trans_states
 
+include("failure_linearization.jl")
+export hover_control
+
 include("nonlinear.jl")
 export NonlinearHexModel
 

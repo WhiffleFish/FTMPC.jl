@@ -18,9 +18,9 @@ function hex_linear()
     Bv[12,4] = 1/Jz
 
     MixMat = [1                 1           1                  1             1          1       ;
-               l/2                l          l/2               -l/2           -l        -l/2      ;
-               l*sqrt(3)/2        0      -l*sqrt(3)/2     -l*sqrt(3)/2     0     l*sqrt(3)/2;
-               d/b                -d/b           d/b                 -d/b             d/b          -d/b]
+              l/2                l          l/2               -l/2           -l        -l/2      ;
+              l*sqrt(3)/2        0      -l*sqrt(3)/2     -l*sqrt(3)/2     0     l*sqrt(3)/2;
+              d/b                -d/b           d/b                 -d/b             d/b          -d/b]
 
     B = Bv*MixMat
     C = Matrix(I(np))
