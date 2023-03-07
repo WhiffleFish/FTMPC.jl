@@ -6,7 +6,7 @@ const MPC = BarrierFTMPC
 
 
 begin
-    model = LinearHexModel(2)
+    model = LinearHexModel(3)
     x0 = zeros(12)
     x_ref = zeros(12)
     x_ref[3] = -5
@@ -24,5 +24,13 @@ end
 plot(t, uout', labels=reshape(["δu$i" for i ∈ 1:6],1,6), lw=2)
 plot(x[7:end,:]')
 
-(uout .+ model.u)[:,end]
-uout[:,end]
+
+##
+MPC.HOVER_LHS*hover_control(1)
+
+hover_control(1)
+
+const counter = Ref(0)
+
+counter[] += 1
+counter

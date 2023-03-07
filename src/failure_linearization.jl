@@ -5,12 +5,13 @@ const s_30 = sind(30)
 const c_30 = cosd(30)
 
 const HOVER_LHS = @SMatrix [
-    -s_30 -1 -s_30 s_30 1 s_30
-    c_30 0 c_30 -c_30 0 -c_30
+    -s_30 -1 -s_30 s_30 1 s_30 # roll
+    c_30 0 c_30 -c_30 0 -c_30 # pitch
+    1 -1 1 -1 1 -1 # yaw
     1 1 1 1 1 1
 ]
 
-const HOVER_RHS = @SVector [0,0,m*g]
+const HOVER_RHS = @SVector [0,0,0,m*g]
 
 function hover_control(failed=0)
     if !iszero(failed)
