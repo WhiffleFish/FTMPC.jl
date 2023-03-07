@@ -1,5 +1,5 @@
 #SS: [x, y, z, dx, dy, dz]
-function hex_linear()
+function hex_linear(failure=0)
     A = zeros(nn,nn)
     Bv = zeros(nn,nmFM)
 
@@ -25,7 +25,9 @@ function hex_linear()
     B = Bv*MixMat
     C = Matrix(I(np))
     D = zeros(np, nm)
-
+    if !iszero(failure)
+        B[:,failure] .= 0
+    end
     return (A,B,C,D)
 end
 
@@ -55,16 +57,24 @@ end
 
 """
     X = [x, y, z, ϕ, θ, ψ, dx, dy, dz, dϕ, dθ, dψ]
+
+NOTE: x,y,z in inertial frame; rest in body frame
 """
-Base.@kwdef struct LinearHexModel
+struct LinearHexModel
     "Linearized perturbation model"
-    ss::StateSpace{Continuous, Float64} = ss(hex_linear()...)
+    ss::StateSpace{Continuous, Float64}
 
     "Linearization state x̄ -> x = x̄ + δx"
-    x::Vector{Float64} = zeros(6)
+    x::Vector{Float64}
 
     "Linearization control ū -> u = ū + δu"
-    u::Vector{Float64} = fill(m*g/6, 6)
+    u::Vector{Float64}
+
+    LinearHexModel(failure::Int=0) = new(
+        ss(hex_linear(failure)...),
+        zeros(6),
+        hover_control(failure)
+    )
 end
 
 function basis(n,i)

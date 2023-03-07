@@ -6,14 +6,14 @@ const c_30 = cosd(30)
 
 const HOVER_LHS = @SMatrix [
     -s_30 -1 -s_30 s_30 1 s_30
-    c_30 1 c_30 -c_30 -1 -c_30
+    c_30 0 c_30 -c_30 0 -c_30
     1 1 1 1 1 1
 ]
 
 const HOVER_RHS = @SVector [0,0,m*g]
 
 function hover_control(failed=0)
-    if iszero(failed)
+    if !iszero(failed)
         not_failed = filter(!=(failed), 1:6)
         A = HOVER_LHS[:,not_failed]
         u_not_failed = pinv(A)*HOVER_RHS
