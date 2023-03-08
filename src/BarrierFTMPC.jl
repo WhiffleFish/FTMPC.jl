@@ -17,9 +17,11 @@ export hover_control
 include("nonlinear.jl")
 export NonlinearHexModel
 
-include("belief.jl")
+include("joint_dynamics.jl")
+export joint_dynamics, make_joint, batch_dynamics, unbatch_states
 
 # extras
-export basis
+include("extras.jl")
+export basis, blkdiag
 
 end

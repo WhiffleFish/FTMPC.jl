@@ -31,6 +31,9 @@ function hex_linear(failure=0)
     return (A,B,C,D)
 end
 
+""" Flip direction of z and dz of state vector s.t. +z points up"""
+function flip_z end
+
 function flip_z(x::AbstractVector)
     x_out = copy(x)
     x[3] = -x[3]
@@ -44,6 +47,9 @@ function flip_z(X::AbstractMatrix)
     X_out[9,:] .= -X_out[9,:]
     return X_out
 end
+
+"""Get only translational states (x,y,z,dx,dy,dz) from state"""
+function trans_states end
 
 function trans_states(x::AbstractVector)
     @assert length(x) == 12
@@ -75,10 +81,4 @@ struct LinearHexModel
         zeros(6),
         hover_control(failure)
     )
-end
-
-function basis(n,i)
-    e_i = zeros(n)
-    e_i[i] = 1
-    return e_i
 end
