@@ -4,17 +4,16 @@ using LinearAlgebra
 using BarrierFTMPC
 const MPC = BarrierFTMPC
 
+x0 = zeros(12)
+x_ref = zeros(12)
+x_ref[3] = -5
+Q = I; R = I
+t = 0:0.1:10
 
 begin
-    model = LinearHexModel(3)
-    x0 = zeros(12)
-    x_ref = zeros(12)
-    x_ref[3] = -5
-    Q = I; R = I
+    model = LinearHexModel(6)
     L = lqr(model.ss, Q, R)
     u(x,t) = -L*(x - x_ref)
-    t = 0:0.1:10
-    lsim(model.ss, u, t, x0=x0)
     y, t, x, uout = lsim(model.ss,u,t,x0=x0)
     p1 = plot(t, trans_states(flip_z(x))', labels=MPC.STATE_LABELS)
     p2 = plot(t, (uout .+ model.u)', labels=reshape(["u$i" for i ∈ 1:6],1,6), lw=2)
@@ -23,14 +22,3 @@ end
 
 plot(t, uout', labels=reshape(["δu$i" for i ∈ 1:6],1,6), lw=2)
 plot(x[7:end,:]')
-
-
-##
-MPC.HOVER_LHS*hover_control(1)
-
-hover_control(1)
-
-const counter = Ref(0)
-
-counter[] += 1
-counter

@@ -4,7 +4,8 @@ using LinearAlgebra
 using StaticArrays
 using ControlSystems
 using BlockArrays
-# using OSQP
+using SparseArrays
+using OSQP
 
 include("constants.jl")
 include("linear.jl")
@@ -19,6 +20,10 @@ export NonlinearHexModel
 
 include("joint_dynamics.jl")
 export joint_dynamics, make_joint, batch_dynamics, unbatch_states
+export HexBatchDynamics
+
+include("osqp.jl")
+export OSQPFormulator, OSQPModel
 
 # extras
 include("extras.jl")

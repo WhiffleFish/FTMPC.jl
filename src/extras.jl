@@ -7,3 +7,5 @@ end
 function blkdiag(mat::AbstractMatrix, n::Int)
     return cat(Iterators.repeated(mat, n)..., dims=(1,2))
 end
+
+blkdiag(mats) = cat(mats..., dims=(1,2))

@@ -82,3 +82,6 @@ struct LinearHexModel
         hover_control(failure)
     )
 end
+
+const HEX_X_DIM = 12
+const HEX_U_DIM = 6
