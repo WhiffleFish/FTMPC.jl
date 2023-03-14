@@ -31,8 +31,8 @@ function consensus_constraint(sys::HexBatchDynamics, T_consensus=horizon(sys)-1)
             mode_section = t_section + (mode-1)*6
             for u_i ∈ 1:6
                 u_idx = mode_section + u_i
-                m[idx, idx] = -1
-                m[idx, idx-6] = 1
+                m[u_idx, u_idx] = -1
+                m[u_idx, u_idx-6] = 1
             end
         end
     end
@@ -52,12 +52,29 @@ function OSQPModel(f::OSQPFormulator, x0)
         I(nx) -B;
         zeros(nu,nx) consensus_constraint(sys)
     ]
-    l = [A*x0 - Δ_nom; zeros(nu)]
-    u = [A*x0 - Δ_nom; zeros(nu)]
+    l = [A*repeat(x0, nm) - Δ_nom; zeros(nu)]
+    u = [A*repeat(x0, nm) - Δ_nom; zeros(nu)]
 
     @assert size(A_constraint, 1) == length(l) == length(u)
     @assert size(A_constraint, 2) == nx + nu == size(f.P,2) == length(f.q)
 
     OSQP.setup!(model; P=f.P, q=f.q, A=A_constraint, l=l, u=u)
     return model
+end
+
+
+struct HexOSQPResults
+    X::Vector{Matrix{Float64}}
+    U::Vector{Matrix{Float64}}
+end
+
+function HexOSQPResults(f::OSQPFormulator, res::OSQP.Results)
+    sys = f.sys
+    nm, T = n_modes(sys), horizon(sys)
+    x = res.x[1:12*nm*T]
+    u = res.x[12*nm*T+1 : end]
+
+    X = unbatch_and_disjoint(x, nm, T, HEX_X_DIM)
+    U = unbatch_and_disjoint(u, nm, T-1, HEX_U_DIM)
+    return HexOSQPResults(X,U)
 end

@@ -33,15 +33,15 @@ function unbatch_states(X::AbstractVector, nx::Int)
     return reshape(X, nx, T)
 end
 
-function unbatch_and_disjoint(X::AbstractVector, n_modes::Int, T::Int)
-    @assert length(X) == 12*n_modes*T
+function unbatch_and_disjoint(X::AbstractVector, n_modes::Int, T::Int, nx::Int)
+    @assert length(X) == nx*n_modes*T
     n_seqs = length(X) ÷ n_modes
     mats = Matrix{Float64}[]
     for mode ∈ 1:n_modes
-        mat = zeros(12, T)
+        mat = zeros(nx, T)
         for t ∈ 1:T
-            idx0 = (mode-1)*T
-            idxf = idx1 + 11
+            idx0 = n_modes*(t-1)*nx + (mode-1)*nx + 1
+            idxf = idx0 + nx-1
             mat[:,t] .= X[idx0:idxf]
         end
         push!(mats, mat)
