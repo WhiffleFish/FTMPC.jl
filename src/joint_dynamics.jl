@@ -96,6 +96,7 @@ struct HexBatchDynamics{M1<:AbstractMatrix, M2<:AbstractMatrix}
     Δ_nom::Vector{Float64}
     modes::Vector{Int}
     T::Int
+    Δt::Float64
 end
 
 n_modes(sys::HexBatchDynamics) = length(sys.modes)
@@ -126,6 +127,7 @@ function HexBatchDynamics(;T=10, Δt=0.1, failures=0:6)
         sparse(B̄),
         convert(Vector{Float64}, Δ_nom), # probably shouldn't need to do this
         convert(Vector{Int}, failures),
-        T
+        T,
+        Δt
     )
 end

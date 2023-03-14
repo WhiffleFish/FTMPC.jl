@@ -64,18 +64,21 @@ function OSQPModel(f::OSQPFormulator, x0)
 end
 
 
-struct HexOSQPResults
+struct HexOSQPResults{T}
     X::Vector{Matrix{Float64}}
     U::Vector{Matrix{Float64}}
+    t::T
 end
 
 function HexOSQPResults(f::OSQPFormulator, res::OSQP.Results)
     sys = f.sys
+    Δt = sys.Δt
     nm, T = n_modes(sys), horizon(sys)
-    x = res.x[1:12*nm*T]
-    u = res.x[12*nm*T+1 : end]
+    x = res.x[1:HEX_X_DIM*nm*T]
+    u = res.x[HEX_X_DIM*nm*T+1 : end]
 
     X = unbatch_and_disjoint(x, nm, T, HEX_X_DIM)
     U = unbatch_and_disjoint(u, nm, T-1, HEX_U_DIM)
-    return HexOSQPResults(X,U)
+    t = 0.0:Δt:Δt*(T-1)
+    return HexOSQPResults(X,U,t)
 end
