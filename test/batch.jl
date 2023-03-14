@@ -1,3 +1,5 @@
+let
+
 failures = 0:6
 nm = length(failures)
 T = 11
@@ -18,3 +20,4 @@ for i ∈ 0:6
     y, t, x, uout = lsim(sys, _u, t, x0=zeros(12))
     @test Xs[i+1] ≈ x atol=1e-5
 end
+end # let
