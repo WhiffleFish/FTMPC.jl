@@ -1,10 +1,11 @@
-struct OSQPFormulator{T1,T2,T3,T4}
+struct OSQPFormulator{T1,T2,T3,T4,T5}
     sys::HexBatchDynamics{T1,T2}
     P::T3 # BIG
     q::T4
+    kwargs::T5
 end
 
-function OSQPFormulator(sys::HexBatchDynamics; P=I(12), Q=I(6), x_ref=zeros(12))
+function OSQPFormulator(sys::HexBatchDynamics; P=I(12), Q=I(6), x_ref=zeros(12), kwargs...)
     @assert size(P)     == (12,12)
     @assert size(Q)     == (6,6)
     @assert size(x_ref) == (12,)
@@ -17,7 +18,7 @@ function OSQPFormulator(sys::HexBatchDynamics; P=I(12), Q=I(6), x_ref=zeros(12))
     P_osqp = blkdiag((P_full, Q_full))
     q_osqp = vcat(vec(-x_ref_full' * P_full), zeros(size(Q_full,1)))
 
-    return OSQPFormulator(sys, P_osqp, q_osqp)
+    return OSQPFormulator(sys, P_osqp, q_osqp, kwargs)
 end
 
 function consensus_constraint(sys::HexBatchDynamics, T_consensus=horizon(sys)-1)
@@ -58,7 +59,7 @@ function OSQPModel(f::OSQPFormulator, x0)
     @assert size(A_constraint, 1) == length(l) == length(u)
     @assert size(A_constraint, 2) == nx + nu == size(f.P,2) == length(f.q)
 
-    OSQP.setup!(model; P=f.P, q=f.q, A=A_constraint, l=l, u=u)
+    OSQP.setup!(model; P=f.P, q=f.q, A=A_constraint, l=l, u=u, f.kwargs...)
     return model
 end
 
