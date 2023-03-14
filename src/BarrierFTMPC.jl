@@ -15,9 +15,6 @@ export flip_z, trans_states
 include("failure_linearization.jl")
 export hover_control
 
-include("nonlinear.jl")
-export NonlinearHexModel
-
 include("joint_dynamics.jl")
 export joint_dynamics, make_joint, batch_dynamics, unbatch_states
 export HexBatchDynamics
