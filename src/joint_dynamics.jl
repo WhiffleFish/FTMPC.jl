@@ -97,6 +97,7 @@ struct HexBatchDynamics{M1<:AbstractMatrix, M2<:AbstractMatrix}
     modes::Vector{Int}
     T::Int
     Δt::Float64
+    u_bounds::Tuple{Float64, Float64}
 end
 
 n_modes(sys::HexBatchDynamics) = length(sys.modes)
@@ -104,7 +105,7 @@ horizon(sys::HexBatchDynamics) = sys.T
 #=
 Joint THEN batch
 =#
-function HexBatchDynamics(;T=10, Δt=0.1, failures=0:6)
+function HexBatchDynamics(;T=10, Δt=0.1, failures=0:6, u_bounds=(-Inf,Inf))
     n = length(failures)
     As = Matrix{Float64}[]
     Bs = Matrix{Float64}[]
@@ -128,6 +129,7 @@ function HexBatchDynamics(;T=10, Δt=0.1, failures=0:6)
         convert(Vector{Float64}, Δ_nom), # probably shouldn't need to do this
         convert(Vector{Int}, failures),
         T,
-        Δt
+        Δt,
+        u_bounds
     )
 end

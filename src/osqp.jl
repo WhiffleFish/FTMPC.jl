@@ -42,19 +42,32 @@ end
 
 function OSQPModel(f::OSQPFormulator, x0)
     sys = f.sys
-    (;A,B,Δ_nom) = sys
+    (;A,B,Δ_nom, u_bounds) = sys
+    u_lower, u_upper = u_bounds
+
     nm, T = n_modes(sys), horizon(sys)
     model = OSQP.Model()
     nx, nu = size(B)
     # X = Ā*x_0 + B̄*U - Δ_nom
     # X - B*U = Ā*x_0 - Δ_nom
 
-    A_constraint = [
-        I(nx) -B;
-        zeros(nu,nx) consensus_constraint(sys)
-    ]
-    l = [A*repeat(x0, nm) - Δ_nom; zeros(nu)]
-    u = [A*repeat(x0, nm) - Δ_nom; zeros(nu)]
+    if u_bounds == (-Inf, Inf)
+        A_constraint = [
+            I(nx) -B;
+            zeros(nu,nx) consensus_constraint(sys)
+        ]
+        l = [A*repeat(x0, nm) - Δ_nom; zeros(nu)]
+        u = [A*repeat(x0, nm) - Δ_nom; zeros(nu)]
+    else
+        A_constraint = [
+            I(nx) -B;
+            zeros(nu,nx) consensus_constraint(sys);
+            zeros(nu,nx) I(nu)
+        ]
+        l = [A*repeat(x0, nm) - Δ_nom; zeros(nu); fill(u_lower, nu)]
+        u = [A*repeat(x0, nm) - Δ_nom; zeros(nu); fill(u_upper, nu)]
+    end
+
 
     @assert size(A_constraint, 1) == length(l) == length(u)
     @assert size(A_constraint, 2) == nx + nu == size(f.P,2) == length(f.q)
