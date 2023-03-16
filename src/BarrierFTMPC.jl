@@ -5,6 +5,7 @@ using StaticArrays
 using ControlSystems
 using BlockArrays
 using SparseArrays
+using JuMP
 using OSQP
 
 include("constants.jl")
@@ -21,6 +22,9 @@ export HexBatchDynamics
 
 include("osqp.jl")
 export OSQPFormulator, OSQPModel
+
+include("jump.jl")
+export JuMPFormulator, JuMPModel
 
 # extras
 include("extras.jl")
