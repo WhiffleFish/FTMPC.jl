@@ -5,10 +5,10 @@ using OSQP
 using BarrierFTMPC
 const MPC = BarrierFTMPC
 
-failures = [0,1]
+failures = [0,1,2,3]
 T = 100
 Δt = 0.1
-u_bounds = (0.,10.)
+# u_bounds = (0.,10.)
 nm = length(failures)
 sys = MPC.HexBatchDynamics(;failures, T, Δt, u_bounds)
 x0 = zeros(12)

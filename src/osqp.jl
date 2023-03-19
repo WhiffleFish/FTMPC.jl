@@ -5,14 +5,35 @@ struct OSQPFormulator{T1,T2,T3,T4,T5}
     kwargs::T5
 end
 
+function process_P(t::Tuple{<:AbstractMatrix, Int}, nm, T)
+    m, idx = t
+    ms = fill(zero(m), nm)
+    ms[idx] = m
+    return process_P(ms, nm, T)
+end
+
+function process_P(P::AbstractMatrix, nm, T)
+    return sparse(blkdiag(P, nm*T))
+end
+
+function process_P(ms::Vector{<:AbstractMatrix}, nm, T)
+    return if length(ms) == nm
+        sparse(blkdiag(blkdiag(ms),T))
+    elseif length(ms) == nm*T
+        sparse(blkdiag(ms))
+    else
+        error("invalid size")
+    end
+end
+
 function OSQPFormulator(sys::HexBatchDynamics; P=I(12), Q=I(6), x_ref=zeros(12), kwargs...)
-    @assert size(P)     == (12,12)
-    @assert size(Q)     == (6,6)
+    # @assert size(P)     == (12,12)
+    # @assert size(Q)     == (6,6)
     @assert size(x_ref) == (12,)
 
     nm, T = n_modes(sys), horizon(sys)
-    P_full = sparse(blkdiag(P, nm*T))
-    Q_full = sparse(blkdiag(Q, nm*(T-1)))
+    P_full = process_P(P, nm, T)
+    Q_full = process_P(Q, nm, T)
     x_ref_full = repeat(x_ref, nm*T)
 
     P_osqp = blkdiag((P_full, Q_full))

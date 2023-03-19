@@ -27,7 +27,7 @@ include("jump.jl")
 export JuMPFormulator, JuMPModel
 
 include("barriers.jl")
-export BarrierJuMPFormulator, JuMPModel
+export BarrierJuMPFormulator
 
 # extras
 include("extras.jl")

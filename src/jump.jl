@@ -14,8 +14,8 @@ function JuMPFormulator(sys::HexBatchDynamics, solver; P=I(12), Q=I(6), x_ref=ze
     @assert size(x_ref) == (12,)
 
     nm, T = n_modes(sys), horizon(sys)
-    P_full = sparse(blkdiag(P, nm*T))
-    Q_full = sparse(blkdiag(Q, nm*(T-1)))
+    P_full = process_P(P, nm, T)
+    Q_full = process_P(Q, nm, T-1)
     x_ref_full = repeat(x_ref, nm*T)
 
     P_osqp = blkdiag((P_full, Q_full))
