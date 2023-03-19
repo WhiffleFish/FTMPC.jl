@@ -1,6 +1,6 @@
 struct OSQPFormulator{T1,T2,T3,T4,T5}
     sys::HexBatchDynamics{T1,T2}
-    P::T3 # BIG
+    P::T3
     q::T4
     kwargs::T5
 end

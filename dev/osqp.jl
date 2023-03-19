@@ -31,7 +31,6 @@ p2 = plot(_res.t[1:end-1],_res.U[1]', lw=2, labels=permutedims(["u$i" for i ∈ 
 
 plot(p1,p2)
 
-
 plot(_res.t,
     trans_states(flip_z(_res.X[1]))',
     labels=permutedims(MPC.STATE_LABELS[MPC.TRANSLATIONAL_STATES]),

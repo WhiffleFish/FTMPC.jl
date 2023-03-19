@@ -5,7 +5,6 @@ struct JuMPFormulator{T1,T2,T3,T4,T5}
     q::T5
 end
 
-
 function JuMPFormulator(sys::HexBatchDynamics, solver; P=I(12), Q=I(6), x_ref=zeros(12), kwargs...)
     @assert size(P)     == (12,12)
     @assert size(Q)     == (6,6)
@@ -41,10 +40,10 @@ function JuMPModel(f::JuMPFormulator, x0)
 
     @variable(model, x[1:nx+nu])
     @constraint(model, A_eq*x .== eq_rhs)
-    @constraint(model, u_lower .≤ x[nx+1:end] .≤ u_upper)
-    # @objective(model, Min, 0.5*x*f.P*x + f.q*x)
+    if u_bounds ≠ (-Inf, Inf)
+        @constraint(model, u_lower .≤ x[nx+1:end] .≤ u_upper)
+    end
     @objective(model, Min, 0.5*dot(x, f.P, x) + dot(f.q,x))
-
 
     return model
 end

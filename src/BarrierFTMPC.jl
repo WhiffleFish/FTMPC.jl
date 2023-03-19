@@ -26,6 +26,9 @@ export OSQPFormulator, OSQPModel
 include("jump.jl")
 export JuMPFormulator, JuMPModel
 
+include("barriers.jl")
+export BarrierJuMPFormulator, JuMPModel
+
 # extras
 include("extras.jl")
 export basis, blkdiag
