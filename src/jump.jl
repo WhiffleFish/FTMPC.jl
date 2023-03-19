@@ -1,9 +1,12 @@
-struct JuMPFormulator{T1,T2,T3,T4,T5}
+struct JuMPFormulator{T1,T2,T3,T4,T5,T6}
     sys::HexBatchDynamics{T1,T2}
     solver::T3
     P::T4
     q::T5
+    kwargs::T6
 end
+
+convert_kwargs(kwargs::Base.Pairs) = Tuple(string(a)=>b for (a,b) ∈ kwargs)
 
 function JuMPFormulator(sys::HexBatchDynamics, solver; P=I(12), Q=I(6), x_ref=zeros(12), kwargs...)
     @assert size(P)     == (12,12)
@@ -18,7 +21,7 @@ function JuMPFormulator(sys::HexBatchDynamics, solver; P=I(12), Q=I(6), x_ref=ze
     P_osqp = blkdiag((P_full, Q_full))
     q_osqp = vcat(vec(-x_ref_full' * P_full), zeros(size(Q_full,1)))
 
-    return JuMPFormulator(sys, solver, P_osqp, q_osqp)
+    return JuMPFormulator(sys, solver, P_osqp, q_osqp, convert_kwargs(kwargs))
 end
 
 function JuMPModel(f::JuMPFormulator, x0)
@@ -27,7 +30,9 @@ function JuMPModel(f::JuMPFormulator, x0)
     u_lower, u_upper = u_bounds
 
     nm, T = n_modes(sys), horizon(sys)
-    model = Model(f.solver)
+    model = Model(
+        optimizer_with_attributes(f.solver, f.kwargs...),
+    )
     nx, nu = size(B)
     # X = Ā*x_0 + B̄*U - Δ_nom
     # X - B*U = Ā*x_0 - Δ_nom

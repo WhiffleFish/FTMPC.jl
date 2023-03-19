@@ -28,12 +28,13 @@ function linear_constraint_barrier(sys,a,b,γ)
     return BarrierConstraint(A, lb, ub)
 end
 
-struct BarrierJuMPFormulator{T1,T2,T3,T4,T5,T6}
+struct BarrierJuMPFormulator{T1,T2,T3,T4,T5,T6,T7}
     sys::HexBatchDynamics{T1,T2}
     solver::T3
     P::T4
     q::T5
     barrier::T6
+    kwargs::T7
 end
 
 function BarrierJuMPFormulator(sys::HexBatchDynamics, solver; P=I(12), Q=I(6), x_ref=zeros(12), A_constraint=nothing, b_constraint=nothing, γ_constraint=0.01, kwargs...)
@@ -55,8 +56,7 @@ function BarrierJuMPFormulator(sys::HexBatchDynamics, solver; P=I(12), Q=I(6), x
         linear_constraint_barrier(sys, A_constraint, b_constraint, γ_constraint)
     end
 
-
-    return BarrierJuMPFormulator(sys, solver, P_osqp, q_osqp, barrier)
+    return BarrierJuMPFormulator(sys, solver, P_osqp, q_osqp, barrier, convert_kwargs(kwargs))
 end
 
 function JuMPModel(f::BarrierJuMPFormulator, x0)
@@ -65,7 +65,9 @@ function JuMPModel(f::BarrierJuMPFormulator, x0)
     u_lower, u_upper = u_bounds
 
     nm, T = n_modes(sys), horizon(sys)
-    model = Model(f.solver)
+    model = Model(
+        optimizer_with_attributes(f.solver, f.kwargs...),
+    )
     nx, nu = size(B)
 
     A_eq = [
@@ -80,7 +82,7 @@ function JuMPModel(f::BarrierJuMPFormulator, x0)
         @constraint(model, CONTROL, u_lower .≤ x[nx+1:end] .≤ u_upper)
     end
     if !isnothing(barrier)
-        @constraint(model, BARRIER, barrier.lb .≤ barrier.A*x .≤ barrier.ub)
+        @constraint(model, BARRIER, barrier.A*x .≤ barrier.ub)
     end
 
     @objective(model, Min, 0.5*dot(x, f.P, x) + dot(f.q,x))
@@ -100,4 +102,9 @@ function HexOSQPResults(f::BarrierJuMPFormulator, model::JuMP.Model)
     U = unbatch_and_disjoint(u, nm, T-1, HEX_U_DIM)
     t = 0.0:Δt:Δt*(T-1)
     return HexOSQPResults(X,U,t)
+end
+
+function max_barrier_violation(f::BarrierJuMPFormulator, model::JuMP.Model)
+    X = value.(model[:x])
+    return maximum(f.barrier.A*x .- bf.arrier.ub)
 end

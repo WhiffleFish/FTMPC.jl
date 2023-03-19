@@ -8,9 +8,9 @@ using Plots
 
 A_constraint = zeros(12)
 A_constraint[2] = -1
-b_constraint = 5
+b_constraint = 1
 
-failures = [0]
+failures = [0,1]
 T = 100
 Δt = 0.1
 γ_constraint = 1e-2
@@ -29,7 +29,13 @@ f = BarrierJuMPFormulator(
     x_ref, Q=I(6)*1e-2,
     A_constraint,
     b_constraint,
-    γ_constraint
+    γ_constraint,
+    polish = true,
+    eps_prim_inf = 1e-3,
+    eps_abs = 1e-4,
+    eps_rel = 1e-4,
+    polish_refine_iter = 10,
+    check_termination = 50
 )
 model = JuMPModel(f, x0)
 optimize!(model)
@@ -48,14 +54,15 @@ plot(p1,p2)
 barrier = f.barrier
 x = value.(model[:x])
 
-model[:BARRIER]
-value.(model[:BARRIER]) .≤ 0.05
+value.(model[:BARRIER])
 
+value.(model[:BARRIER]) .≤ 0.5
 
-barrier.ub .- barrier.A*x
+@edit value(model[:BARRIER][2])
 
-barrier.A*x .≤ barrier.ub
-barrier.ub
+@edit JuMP._constraint_primal(model[:BARRIER][2],1)
+
+max_barrier_violation = maximum(barrier.A*x .- barrier.ub)
 
 ##
 using BarrierFTMPC
@@ -69,7 +76,7 @@ using Plots
 A_constraint = zeros(12)
 A_constraint[2] = -1
 b_constraint = 1
-γ_constraint = 1e-2
+γ_constraint = 1e-1
 
 failures = [0]
 T = 100
@@ -86,7 +93,7 @@ x_ref[2] = 10
 
 f = BarrierJuMPFormulator(
     sys,
-    OSQP.Optimizer;
+    MadNLP.Optimizer;
     x_ref, Q=I(6)*1e-2,
     A_constraint,
     b_constraint,
@@ -103,3 +110,10 @@ p1 = plot(res.t,
 )
 p2 = plot(res.t[1:end-1],res.U[1]', lw=2, labels=permutedims(["u$i" for i ∈ 1:6]))
 plot(p1,p2)
+
+
+get_kwargs(;kwargs...) = kwargs
+kwargs = get_kwargs(a=1, b=2)
+convert_kwargs(kwargs::Base.Pairs) = Tuple(string(a)=>b for (a,b) ∈ kwargs)
+
+convert_kwargs(kwargs)
