@@ -100,6 +100,7 @@ struct HexBatchDynamics{M1<:AbstractMatrix, M2<:AbstractMatrix}
     u_bounds::Tuple{Float64, Float64}
 end
 
+time_step(sys::HexBatchDynamics) = sys.Δt
 n_modes(sys::HexBatchDynamics) = length(sys.modes)
 horizon(sys::HexBatchDynamics) = sys.T
 #=

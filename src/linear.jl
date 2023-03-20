@@ -83,5 +83,10 @@ struct LinearHexModel
     )
 end
 
+function dstep(dsys::StateSpace{<:Discrete}, x, δu)
+    (;A,B) = dsys
+    return A*x + B*δu
+end
+
 const HEX_X_DIM = 12
 const HEX_U_DIM = 6

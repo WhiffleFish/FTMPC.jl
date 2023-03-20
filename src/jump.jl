@@ -6,6 +6,8 @@ struct JuMPFormulator{T1,T2,T3,T4,T5,T6}
     kwargs::T6
 end
 
+time_step(f::JuMPFormulator) = time_step(f.sys)
+
 convert_kwargs(kwargs::Base.Pairs) = Tuple(string(a)=>b for (a,b) ∈ kwargs)
 
 function JuMPFormulator(sys::HexBatchDynamics, solver; P=I(12), Q=I(6), x_ref=zeros(12), kwargs...)
@@ -44,12 +46,20 @@ function JuMPModel(f::JuMPFormulator, x0)
     eq_rhs = [A*repeat(x0, nm) - Δ_nom; zeros(nu)]
 
     @variable(model, x[1:nx+nu])
-    @constraint(model, A_eq*x .== eq_rhs)
+    @constraint(model, DYNAMICS, A_eq*x .== eq_rhs)
     if u_bounds ≠ (-Inf, Inf)
-        @constraint(model, u_lower .≤ x[nx+1:end] .≤ u_upper)
+        @constraint(model, CONTROL, u_lower .≤ x[nx+1:end] .≤ u_upper)
     end
     @objective(model, Min, 0.5*dot(x, f.P, x) + dot(f.q,x))
 
+    return model
+end
+
+function set_initialstate(model::JuMP.Model, sys::HexBatchDynamics, x0)
+    (;A,B,Δ_nom,u_bounds) = sys
+    nm, T = n_modes(sys), horizon(sys)
+    nx, nu = size(B)
+    set_normalized_rhs.(model[:DYNAMICS], [A*repeat(x0, nm) - Δ_nom; zeros(nu)])
     return model
 end
 
