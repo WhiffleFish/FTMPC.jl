@@ -29,6 +29,12 @@ export JuMPFormulator, JuMPModel
 include("barriers.jl")
 export BarrierJuMPFormulator
 
+include("planner.jl")
+export FTMPCPlanner
+
+include("simulator.jl")
+export Simulator, simulate
+
 # extras
 include("extras.jl")
 export basis, blkdiag
