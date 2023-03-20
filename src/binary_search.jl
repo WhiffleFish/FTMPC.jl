@@ -1,16 +1,23 @@
 function binary_search_max(f, isvalid, T)
-    L = 0
-    R = T-1
+    best_t = 0
+    _min = 0
+    _max = T
     best_val = nothing
-    while L < R
-        t = (L + R) ÷ 2
+    while _min < _max
+        t = (_min + _max) ÷ 2
         val = f(t)
-        if isvalid(val) # consensus horizon too high
-            L = t + 1
+        if isvalid(val) # consensus horizon too low
+            _min = t + 1
+            best_t = t
             best_val = val
-        else            # consensus horizon too low
-            R = t - 1
+        else            # consensus horizon too high
+            _max = t - 1
         end
     end
-    return best_val, L
+    max_val = f(_max)
+    return if isvalid(max_val)
+        max_val, _max
+    else
+        best_val, best_t
+    end
 end

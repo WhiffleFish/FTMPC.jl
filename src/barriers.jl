@@ -11,11 +11,6 @@ struct BarrierConstraint{MAT<:AbstractMatrix, L<:AbstractVector, U<:AbstractVect
     ub::U
 end
 
-"""
-
-
-
-"""
 function linear_constraint_barrier(sys,a,b,γ)
     nm, T = n_modes(sys), horizon(sys)
 
