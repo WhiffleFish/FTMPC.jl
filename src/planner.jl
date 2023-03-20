@@ -1,4 +1,4 @@
-struct FTMPCPlanner{F<:JuMPFormulator}
+struct FTMPCPlanner{F<:Union{JuMPFormulator, BarrierJuMPFormulator}}
     model::JuMP.Model
     f::F
 end

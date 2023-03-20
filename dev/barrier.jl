@@ -119,17 +119,3 @@ p1 = plot(res.t,
 )
 p2 = plot(res.t[1:end-1],res.U[1]', lw=2, labels=permutedims(["u$i" for i ∈ 1:6]))
 plot(p1,p2)
-
-
-get_kwargs(;kwargs...) = kwargs
-kwargs = get_kwargs(a=1, b=2)
-convert_kwargs(kwargs::Base.Pairs) = Tuple(string(a)=>b for (a,b) ∈ kwargs)
-
-convert_kwargs(kwargs)
-
-
-##
-using ControlSystems
-s = LinearHexModel()
-ss = c2d(s.ss, 0.1)
-step(ss, rand(6))

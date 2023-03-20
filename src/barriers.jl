@@ -37,6 +37,8 @@ struct BarrierJuMPFormulator{T1,T2,T3,T4,T5,T6,T7}
     kwargs::T7
 end
 
+time_step(f::BarrierJuMPFormulator) = time_step(f.sys)
+
 function BarrierJuMPFormulator(sys::HexBatchDynamics, solver; P=I(12), Q=I(6), x_ref=zeros(12), A_constraint=nothing, b_constraint=nothing, γ_constraint=0.01, kwargs...)
     # @assert size(P)     == (12,12)
     # @assert size(Q)     == (6,6)
