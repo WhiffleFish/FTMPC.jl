@@ -4,6 +4,11 @@ struct Simulator{P<:FTMPCPlanner}
     planner::P
     x0::Vector{Float64}
     T::Int
+    progress::Bool
+end
+
+function Simulator(sys::LinearHexModel, planner::FTMPCPlanner; x0=zeros(12), T=50, progress=true)
+    return Simulator(sys, planner, x0, T, progress)
 end
 
 struct SimHist
@@ -21,17 +26,34 @@ function simulate(sim::Simulator)
     x_hist = Vector{Float64}[]
     u_hist = Vector{Float64}[]
 
+    prog = Progress(T; enabled=sim.progress)
     for t ∈ 1:T
         u = action(planner, x)
         push!(x_hist, x)
         push!(u_hist, u)
         δu = u - sys.u
         x = dstep(ss, x, δu)
+        next!(prog)
     end
+    finish!(prog)
 
     return SimHist(
         reduce(hcat, x_hist),
         reduce(hcat, u_hist),
-        collect(0.0:Δt:T*Δt)
+        collect(0.0:Δt:(T-1)*Δt)
     )
+end
+
+@recipe function plot(sim::SimHist)
+    layout := (1, 2)
+    @series begin
+        subplot := 1
+        labels --> permutedims(STATE_LABELS[TRANSLATIONAL_STATES])
+        sim.t, trans_states(flip_z(sim.x))'
+    end
+    @series begin
+        subplot := 2
+        labels --> permutedims(["u$i" for i ∈ 1:6])
+        sim.t, sim.u'
+    end
 end

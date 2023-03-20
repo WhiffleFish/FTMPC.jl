@@ -39,6 +39,7 @@ f = BarrierJuMPFormulator(
 )
 
 model = JuMPModel(f, x0)
+MPC.set_initialstate(model, sys, zeros(12))
 optimize!(model)
 res = MPC.HexOSQPResults(f, model)
 
@@ -49,6 +50,13 @@ p1 = plot(res.t,
 )
 p2 = plot(res.t[1:end-1],res.U[1]', lw=2, labels=permutedims(["u$i" for i ∈ 1:6]))
 plot(p1,p2)
+
+MPC.set_initialstate(model, sys, ones(12))
+
+x = model[:x]
+@objective(model, Min, 0.5*dot(x, f.P, x) + dot(f.q,x))
+
+value.(model[:x])
 
 
 ##
@@ -118,3 +126,10 @@ kwargs = get_kwargs(a=1, b=2)
 convert_kwargs(kwargs::Base.Pairs) = Tuple(string(a)=>b for (a,b) ∈ kwargs)
 
 convert_kwargs(kwargs)
+
+
+##
+using ControlSystems
+s = LinearHexModel()
+ss = c2d(s.ss, 0.1)
+step(ss, rand(6))

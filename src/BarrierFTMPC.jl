@@ -5,6 +5,8 @@ using StaticArrays
 using ControlSystems
 using BlockArrays
 using SparseArrays
+using ProgressMeter
+using RecipesBase
 using JuMP
 using OSQP
 

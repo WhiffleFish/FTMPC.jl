@@ -1,6 +1,5 @@
 using BarrierFTMPC
 const MPC = BarrierFTMPC
-using SparseArrays
 using JuMP
 using OSQP
 using LinearAlgebra
@@ -22,8 +21,9 @@ f = JuMPFormulator(sys, OSQP.Optimizer;x_ref,Q=I(6)*1e-2, polish=false, verbose=
 model = JuMPModel(f, x0)
 
 planner = FTMPCPlanner(model, f)
-sim = Simulator(LinearHexModel(0), planner, zeros(12), 50)
+sim = Simulator(LinearHexModel(0), planner, x0=zeros(12), T=50)
 hist = simulate(sim)
 
 plot(hist.x')
 plot(hist.u')
+plot(hist)
