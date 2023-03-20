@@ -82,31 +82,32 @@ using MadNLP
 using LinearAlgebra
 using Plots
 
-A_constraint = zeros(12)
-A_constraint[2] = -1
-b_constraint = 1
-γ_constraint = 1e-1
+# Ax ⪯ b
+constraints = [
+    LinearConstraint(basis(12, 3)*-1, 1, 1e-1),
+    LinearConstraint(basis(12, 3)*1, 1, 1e-1)
+]
 
 failures = [0]
-T = 100
+T = 50
 Δt = 0.1
 
-# u_bounds = (0.,10.)
+u_bounds = (0.,10.)
 u_bounds = (-Inf,Inf)
 nm = length(failures)
 sys = MPC.HexBatchDynamics(;failures, T, Δt, u_bounds)
-x0 = zeros(12)
-x_ref = zeros(12)
-x_ref[2] = 10
-# x_ref[1:3] .= -5
+x0 = basis(12,9)*4.0
+x_ref = basis(12,3)*10
 
 f = BarrierJuMPFormulator(
     sys,
-    MadNLP.Optimizer;
+    OSQP.Optimizer;
     x_ref, Q=I(6)*1e-2,
-    A_constraint,
-    b_constraint,
-    γ_constraint
+    constraints,
+    eps_prim_inf = 1e-3,
+    eps_abs = 1e-3,
+    eps_rel = 1e-3,
+    max_iter = 10_000
 )
 model = JuMPModel(f, x0)
 optimize!(model)

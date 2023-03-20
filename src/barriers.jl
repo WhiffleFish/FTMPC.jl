@@ -1,9 +1,21 @@
+struct LinearConstraint
+    A::Vector{Float64}
+    b::Float64
+    γ::Float64
+    LinearConstraint(A,b,γ=1e-2) = new(A,b,γ)
+end
+
 struct BarrierConstraint{MAT<:AbstractMatrix, L<:AbstractVector, U<:AbstractVector}
     A::MAT
     lb::L
     ub::U
 end
 
+"""
+
+
+
+"""
 function linear_constraint_barrier(sys,a,b,γ)
     nm, T = n_modes(sys), horizon(sys)
 
@@ -39,7 +51,35 @@ end
 
 time_step(f::BarrierJuMPFormulator) = time_step(f.sys)
 
-function BarrierJuMPFormulator(sys::HexBatchDynamics, solver; P=I(12), Q=I(6), x_ref=zeros(12), A_constraint=nothing, b_constraint=nothing, γ_constraint=0.01, kwargs...)
+barrier_constraints(sys, c::LinearConstraint) = linear_constraint_barrier(sys,c.A,c.b,c.γ)
+
+function barrier_constraints(sys, cs::AbstractVector{LinearConstraint})
+    As = Matrix{Float64}[]
+    lbs = Vector{Float64}[]
+    ubs = Vector{Float64}[]
+    for c ∈ cs
+        barrier = linear_constraint_barrier(sys,c.A,c.b,c.γ)
+        push!(As, barrier.A)
+        push!(lbs, barrier.lb)
+        push!(ubs, barrier.ub)
+    end
+    return BarrierConstraint(
+        reduce(vcat, As),
+        reduce(vcat, lbs),
+        reduce(vcat, ubs)
+    )
+end
+
+barrier_constraints(sys,::Nothing) = nothing
+
+function BarrierJuMPFormulator(
+    sys::HexBatchDynamics,
+    solver;
+    P=I(12),
+    Q=I(6),
+    x_ref=zeros(12),
+    constraints = nothing,
+    kwargs...)
     # @assert size(P)     == (12,12)
     # @assert size(Q)     == (6,6)
     @assert size(x_ref) == (12,)
@@ -52,11 +92,7 @@ function BarrierJuMPFormulator(sys::HexBatchDynamics, solver; P=I(12), Q=I(6), x
     P_osqp = blkdiag((P_full, Q_full))
     q_osqp = vcat(vec(-x_ref_full' * P_full), zeros(size(Q_full,1)))
 
-    barrier = if isnothing(A_constraint)
-        nothing
-    else
-        linear_constraint_barrier(sys, A_constraint, b_constraint, γ_constraint)
-    end
+    barrier = barrier_constraints(sys,constraints)
 
     return BarrierJuMPFormulator(sys, solver, P_osqp, q_osqp, barrier, convert_kwargs(kwargs))
 end

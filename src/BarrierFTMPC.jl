@@ -29,7 +29,7 @@ include("jump.jl")
 export JuMPFormulator, JuMPModel
 
 include("barriers.jl")
-export BarrierJuMPFormulator
+export BarrierJuMPFormulator, LinearConstraint
 
 include("planner.jl")
 export FTMPCPlanner

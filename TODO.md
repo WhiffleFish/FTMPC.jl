@@ -5,6 +5,7 @@
     - [x] LQR
     - [x] OSQP LQR
     - [x] JuMP
+- [x] Support multiple CBFs/constraints
 - [ ] Simulation
-  - [ ] Parameter Updater
-- [ ] Variable mode weighting
+  - [x] Parameter Updater
+  - [ ] Variable mode weighting
