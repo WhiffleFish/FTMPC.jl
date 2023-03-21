@@ -11,6 +11,10 @@ function set_initialstate(p::FTMPCPlanner, x)
     set_initialstate(p.model, p.f.sys, x)
 end
 
+function set_objective_weights(p::FTMPCPlanner, ws::AbstractVector)
+    set_objective_weights(p.model, p.f.sys, ws)
+end
+
 function action(p::FTMPCPlanner, x::AbstractVector)
     nm, T = n_modes(p), horizon(p)
     set_initialstate(p, x)

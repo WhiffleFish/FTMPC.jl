@@ -144,5 +144,7 @@ function max_barrier_violation(f::BarrierJuMPFormulator, model::JuMP.Model)
 end
 
 function optimizer_max_barrier_violation(model::JuMP.Model)
-    return maximum(value.(model[:BARRIER]) .- normalized_rhs.(model[:BARRIER]))
+    return maximum(
+        value.(model[:BARRIER]) .- normalized_rhs.(model[:BARRIER])
+    )
 end

@@ -1,9 +1,10 @@
-struct JuMPFormulator{T1,T2,T3,T4,T5,T6}
+struct JuMPFormulator{T1,T2,T3,T4,T5,T6,T7}
     sys::HexBatchDynamics{T1,T2}
     solver::T3
     P::T4
     q::T5
-    kwargs::T6
+    x_ref_full::T6
+    kwargs::T7
 end
 
 time_step(f::JuMPFormulator) = time_step(f.sys)
@@ -11,8 +12,8 @@ time_step(f::JuMPFormulator) = time_step(f.sys)
 convert_kwargs(kwargs::Base.Pairs) = Tuple(string(a)=>b for (a,b) ∈ kwargs)
 
 function JuMPFormulator(sys::HexBatchDynamics, solver; P=I(12), Q=I(6), x_ref=zeros(12), kwargs...)
-    @assert size(P)     == (12,12)
-    @assert size(Q)     == (6,6)
+    # @assert size(P)     == (12,12)
+    # @assert size(Q)     == (6,6)
     @assert size(x_ref) == (12,)
 
     nm, T = n_modes(sys), horizon(sys)
@@ -23,7 +24,7 @@ function JuMPFormulator(sys::HexBatchDynamics, solver; P=I(12), Q=I(6), x_ref=ze
     P_osqp = blkdiag((P_full, Q_full))
     q_osqp = vcat(vec(-x_ref_full' * P_full), zeros(size(Q_full,1)))
 
-    return JuMPFormulator(sys, solver, P_osqp, q_osqp, convert_kwargs(kwargs))
+    return JuMPFormulator(sys, solver, P_osqp, q_osqp, x_ref_full, convert_kwargs(kwargs))
 end
 
 function JuMPModel(f::JuMPFormulator, x0)
@@ -63,6 +64,22 @@ function set_initialstate(model::JuMP.Model, sys::HexBatchDynamics, x0)
     return model
 end
 
+function set_objective_weights(model::JuMP.Model, f, ws::AbstractVector)
+    nm,T = n_modes(f.sys), horizon(f.sys)
+    @assert length(ws) == nm
+    x = model[:x]
+    
+    P = [I(12)*w for w ∈ ws] # shouldn't be hardcoding this
+    Q = [I(6)*w for w ∈ ws]
+    
+    P_full = process_P(P, nm, T)
+    Q_full = process_P(Q, nm, T-1)
+    P_osqp = blkdiag((P_full, Q_full))
+    q_osqp = vcat(vec(-f.x_ref_full' * P_full), zeros(size(Q_full,1)))
+
+    @objective(model, Min, 0.5*dot(x, P_osqp, x) + dot(q_osqp,x))
+    return model
+end
 
 function set_consensus_horizon(model::JuMP.Model, sys::HexBatchDynamics, T::Int)
     (;A,B,Δ_nom,u_bounds) = sys
