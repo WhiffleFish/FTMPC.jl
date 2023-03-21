@@ -7,7 +7,7 @@ x0 = zeros(12)
 x_ref = zeros(12)
 x_ref[3] = -5
 
-f = OSQPFormulator(sys;x_ref,Q=I(6)*1e-2, polish=true)
+f = OSQPFormulator(sys;x_ref,Q=I(6)*1e-2)
 model = OSQPModel(f, x0)
 res = OSQP.solve!(model)
 
