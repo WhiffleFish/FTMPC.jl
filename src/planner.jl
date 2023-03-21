@@ -18,3 +18,12 @@ function action(p::FTMPCPlanner, x::AbstractVector)
     nx,nu = size(p.f.sys.B)
     return value.(p.model[:x][nx+1 : nx+HEX_U_DIM])
 end
+
+##
+
+struct ConsensusSearchPlanner{F<:Union{JuMPFormulator, BarrierJuMPFormulator}}
+    model::JuMP.Model
+    f::F
+end
+
+function set_consensus_horizon(p::FTMPCPlanner, t::Int) end

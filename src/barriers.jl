@@ -103,14 +103,15 @@ function JuMPModel(f::BarrierJuMPFormulator, x0)
     )
     nx, nu = size(B)
 
-    A_eq = [
-        I(nx) -B;
-        zeros(nu,nx) consensus_constraint(sys)
-    ]
-    eq_rhs = [A*repeat(x0, nm) - Δ_nom; zeros(nu)]
+    A_eq = [I(nx) -B]
+    eq_rhs = A*repeat(x0, nm) - Δ_nom
+
+    C = consensus_constraint(sys)
+    consensus_rhs = zeros(size(C,1))
 
     @variable(model, x[1:nx+nu])
     @constraint(model, DYNAMICS, A_eq*x .== eq_rhs)
+    @constraint(model, CONSENSUS, C*x[nx+1:end] .== consensus_rhs)
     if u_bounds ≠ (-Inf, Inf)
         @constraint(model, CONTROL, u_lower .≤ x[nx+1:end] .≤ u_upper)
     end
@@ -138,6 +139,10 @@ function HexOSQPResults(f::BarrierJuMPFormulator, model::JuMP.Model)
 end
 
 function max_barrier_violation(f::BarrierJuMPFormulator, model::JuMP.Model)
-    X = value.(model[:x])
-    return maximum(f.barrier.A*x .- bf.arrier.ub)
+    x = value.(model[:x])
+    return maximum(f.barrier.A*x .- f.barrier.ub)
+end
+
+function optimizer_max_barrier_violation(model::JuMP.Model)
+    return maximum(value.(model[:BARRIER]) .- normalized_rhs.(model[:BARRIER]))
 end

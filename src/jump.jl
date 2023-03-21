@@ -39,14 +39,15 @@ function JuMPModel(f::JuMPFormulator, x0)
     # X = Ā*x_0 + B̄*U - Δ_nom
     # X - B*U = Ā*x_0 - Δ_nom
 
-    A_eq = [
-        I(nx) -B;
-        zeros(nu,nx) consensus_constraint(sys)
-    ]
-    eq_rhs = [A*repeat(x0, nm) - Δ_nom; zeros(nu)]
+    A_eq = [I(nx) -B]
+    eq_rhs = A*repeat(x0, nm) - Δ_nom
+
+    C = consensus_constraint(sys)
+    consensus_rhs = zeros(size(C,1))
 
     @variable(model, x[1:nx+nu])
     @constraint(model, DYNAMICS, A_eq*x .== eq_rhs)
+    @constraint(model, CONSENSUS, C*x[nx+1:end] .== consensus_rhs)
     if u_bounds ≠ (-Inf, Inf)
         @constraint(model, CONTROL, u_lower .≤ x[nx+1:end] .≤ u_upper)
     end
@@ -56,11 +57,17 @@ function JuMPModel(f::JuMPFormulator, x0)
 end
 
 function set_initialstate(model::JuMP.Model, sys::HexBatchDynamics, x0)
+    (;A,Δ_nom) = sys
+    nm = n_modes(sys)
+    set_normalized_rhs.(model[:DYNAMICS], A*repeat(x0, nm) - Δ_nom)
+    return model
+end
+
+
+function set_consensus_horizon(model::JuMP.Model, sys::HexBatchDynamics, T::Int)
     (;A,B,Δ_nom,u_bounds) = sys
     nm, T = n_modes(sys), horizon(sys)
     nx, nu = size(B)
-    set_normalized_rhs.(model[:DYNAMICS], [A*repeat(x0, nm) - Δ_nom; zeros(nu)])
-    return model
 end
 
 function HexOSQPResults(f::JuMPFormulator, model::JuMP.Model)

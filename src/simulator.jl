@@ -44,6 +44,13 @@ function simulate(sim::Simulator)
     )
 end
 
+# FIXME: Doesn't account for multiple barrier functions
+function max_barrier_violation(sim::Simulator, hist::SimHist)
+    f = sim.planner.f
+    ub = first(f.barrier.ub)
+    return maximum(dot(f.barrier.A[1,1:12],x)-ub for x ∈ eachcol(hist.x))
+end
+
 @recipe function plot(sim::SimHist)
     layout := (1, 2)
     @series begin

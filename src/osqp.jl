@@ -33,7 +33,7 @@ function OSQPFormulator(sys::HexBatchDynamics; P=I(12), Q=I(6), x_ref=zeros(12),
 
     nm, T = n_modes(sys), horizon(sys)
     P_full = process_P(P, nm, T)
-    Q_full = process_P(Q, nm, T)
+    Q_full = process_P(Q, nm, T-1)
     x_ref_full = repeat(x_ref, nm*T)
 
     P_osqp = blkdiag((P_full, Q_full))
@@ -46,7 +46,8 @@ function consensus_constraint(sys::HexBatchDynamics, T_consensus=horizon(sys)-1)
     nm, T = n_modes(sys), horizon(sys)
     @assert 1 ≤ T_consensus ≤ T-1
     nu = size(sys.B, 2)
-    m = zeros(nu, nu)
+
+    m = zeros(nm*T_consensus*6, nu)
     for t ∈ 1:T_consensus
         t_section = (t-1)*nm*6
         for mode ∈ 2:nm
@@ -88,7 +89,6 @@ function OSQPModel(f::OSQPFormulator, x0)
         l = [A*repeat(x0, nm) - Δ_nom; zeros(nu); fill(u_lower, nu)]
         u = [A*repeat(x0, nm) - Δ_nom; zeros(nu); fill(u_upper, nu)]
     end
-
 
     @assert size(A_constraint, 1) == length(l) == length(u)
     @assert size(A_constraint, 2) == nx + nu == size(f.P,2) == length(f.q)
