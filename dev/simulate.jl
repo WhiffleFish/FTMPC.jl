@@ -68,21 +68,3 @@ sim = Simulator(LinearHexModel(0), planner, x0=x0, T=100)
 hist = simulate(sim)
 
 plot(hist, lw=2)
-
-
-MPC.max_barrier_violation(sim,hist)
-maximum(f.barrier.A*x .- f.barrier.ub)
-f.barrier.A
-ub = first(f.barrier.ub)
-maximum(dot(f.barrier.A[1,1:12],x)-ub for x ∈ eachcol(hist.x))
-
-f.barrier.A*value.(model[:x])
-
-
-MPC.set_objective_weights(model, f, [1,0])
-MPC.set_objective_weights(model, f, [1,0])
-
-c = model[:CONSENSUS][10]
-
-
-6*nm*(T-1)

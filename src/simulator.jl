@@ -1,5 +1,5 @@
 # https://jump.dev/JuMP.jl/stable/manual/objective/#Modify-an-objective
-struct Simulator{P<:FTMPCPlanner}
+struct Simulator{P}
     sys::LinearHexModel
     planner::P
     x0::Vector{Float64}
@@ -7,7 +7,7 @@ struct Simulator{P<:FTMPCPlanner}
     progress::Bool
 end
 
-function Simulator(sys::LinearHexModel, planner::FTMPCPlanner; x0=zeros(12), T=50, progress=true)
+function Simulator(sys::LinearHexModel, planner; x0=zeros(12), T=50, progress=true)
     return Simulator(sys, planner, x0, T, progress)
 end
 

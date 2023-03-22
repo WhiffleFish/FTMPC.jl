@@ -12,13 +12,14 @@ constraints = [
 ]
 
 failures = [0,1]
-T = 100
+T = 20
 Δt = 0.1
-# u_bounds = (0.,10.)
-u_bounds = (-Inf,Inf)
+u_bounds = (0.,10.)
+# u_bounds = (-Inf,Inf)
 nm = length(failures)
 sys = MPC.HexBatchDynamics(;failures, T, Δt, u_bounds)
 x0 = zeros(12)
+x0[9] = 10
 x_ref = zeros(12)
 x_ref[1:3] .= -5
 

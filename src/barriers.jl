@@ -107,7 +107,7 @@ function JuMPModel(f::BarrierJuMPFormulator, x0)
     A_eq = [I(nx) -B]
     eq_rhs = A*repeat(x0, nm) - Δ_nom
 
-    C = consensus_constraint(sys)
+    C = consensus_constraint(sys, T-1)
     consensus_rhs = zeros(size(C,1))
 
     @variable(model, x[1:nx+nu])
@@ -121,6 +121,10 @@ function JuMPModel(f::BarrierJuMPFormulator, x0)
     end
 
     @objective(model, Min, 0.5*dot(x, f.P, x) + dot(f.q,x))
+    
+    # Note: Model must be optimized for FULL consensus horizon before setting lower
+    # consensus horizons. Otherwise OSQP gets angry about changing sparsity pattens.
+    optimize!(model)
 
     return model
 end
@@ -154,12 +158,6 @@ function optimizer_max_barrier_violation(model::JuMP.Model)
     return maximum(
         value.(model[:BARRIER]) .- normalized_rhs.(model[:BARRIER])
     )
-end
-
-function set_consensus_horizon(model::JuMP.Model, sys::HexBatchDynamics, T::Int)
-    (;A,B,Δ_nom,u_bounds) = sys
-    nm, T = n_modes(sys), horizon(sys)
-    nx, nu = size(B)
 end
 
 function set_objective_weights(model::JuMP.Model, f, ws::AbstractVector)

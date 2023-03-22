@@ -14,9 +14,6 @@ include("linear.jl")
 export LinearHexModel
 export flip_z, trans_states
 
-include("binary_search.jl")
-export binary_search_max
-
 include("failure_linearization.jl")
 export hover_control
 
@@ -26,6 +23,9 @@ export HexBatchDynamics
 
 include("barriers.jl")
 export BarrierJuMPFormulator, LinearConstraint, JuMPModel
+
+include("binary_search.jl")
+export binary_search_max
 
 include("planner.jl")
 export FTMPCPlanner

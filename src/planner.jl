@@ -30,6 +30,10 @@ struct ConsensusSearchPlanner{F<:BarrierJuMPFormulator}
     f::F
 end
 
+time_step(p::ConsensusSearchPlanner) = time_step(p.f)
+n_modes(p::ConsensusSearchPlanner) = n_modes(p.f.sys)
+horizon(p::ConsensusSearchPlanner) = horizon(p.f.sys)
+
 function set_initialstate(p::ConsensusSearchPlanner, x)
     set_initialstate(p.model, p.f.sys, x)
 end
@@ -69,10 +73,11 @@ function set_consensus_horizon(model::JuMP.Model, f, t::Int)
 end
 
 function action(p::ConsensusSearchPlanner, x::AbstractVector)
+    (;model, f) = p
     nm, T = n_modes(p), horizon(p)
-    nx,nu = size(p.f.sys.B)
+    nx,nu = size(f.sys.B)
     
-    s = BinaryConsensusSearch(p.model, p.f)
+    s = BinaryConsensusSearch(model, f)
     set_initialstate(p, x)
     m, t = binary_search_max(s, valid_consensus, T)
     set_consensus_horizon(model, f, t)
