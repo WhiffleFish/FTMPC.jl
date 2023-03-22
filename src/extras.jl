@@ -9,3 +9,5 @@ function blkdiag(mat::AbstractMatrix, n::Int)
 end
 
 blkdiag(mats) = cat(mats..., dims=(1,2))
+
+convert_kwargs(kwargs::Base.Pairs) = Tuple(string(a)=>b for (a,b) ∈ kwargs)

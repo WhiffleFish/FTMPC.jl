@@ -8,7 +8,6 @@ using SparseArrays
 using ProgressMeter
 using RecipesBase
 using JuMP
-using OSQP
 
 include("constants.jl")
 include("linear.jl")
@@ -25,14 +24,8 @@ include("joint_dynamics.jl")
 export joint_dynamics, make_joint, batch_dynamics, unbatch_states
 export HexBatchDynamics
 
-include("osqp.jl")
-export OSQPFormulator, OSQPModel
-
-include("jump.jl")
-export JuMPFormulator, JuMPModel
-
 include("barriers.jl")
-export BarrierJuMPFormulator, LinearConstraint
+export BarrierJuMPFormulator, LinearConstraint, JuMPModel
 
 include("planner.jl")
 export FTMPCPlanner

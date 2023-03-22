@@ -1,4 +1,4 @@
-struct FTMPCPlanner{F<:Union{JuMPFormulator, BarrierJuMPFormulator}}
+struct FTMPCPlanner{F<:BarrierJuMPFormulator}
     model::JuMP.Model
     f::F
 end
@@ -25,7 +25,7 @@ end
 
 ##
 
-struct ConsensusSearchPlanner{F<:Union{JuMPFormulator, BarrierJuMPFormulator}}
+struct ConsensusSearchPlanner{F<:BarrierJuMPFormulator}
     model::JuMP.Model
     f::F
 end
