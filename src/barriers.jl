@@ -192,7 +192,7 @@ function consensus_constraint(sys::HexBatchDynamics, T_consensus=horizon(sys)-1)
     @assert 1 ≤ T_consensus ≤ T-1
     nu = size(sys.B, 2)
 
-    m = zeros(nm*T_consensus*6, nu)
+    m = zeros(nu, nu)
     for t ∈ 1:T_consensus
         t_section = (t-1)*nm*6
         for mode ∈ 2:nm
