@@ -35,13 +35,14 @@ function linear_constraint_barrier(sys,a,b,γ)
     return BarrierConstraint(A, lb, ub)
 end
 
-struct BarrierJuMPFormulator{T1,T2,T3,T4,T5,T6,T7}
+struct BarrierJuMPFormulator{T1,T2,T3,T4,T5,T6,T7,T8}
     sys::HexBatchDynamics{T1,T2}
     solver::T3
     P::T4
     q::T5
     barrier::T6
-    kwargs::T7
+    x_ref_full::T7
+    kwargs::T8
 end
 
 time_step(f::BarrierJuMPFormulator) = time_step(f.sys)
@@ -89,7 +90,7 @@ function BarrierJuMPFormulator(
 
     barrier = barrier_constraints(sys,constraints)
 
-    return BarrierJuMPFormulator(sys, solver, P_osqp, q_osqp, barrier, convert_kwargs(kwargs))
+    return BarrierJuMPFormulator(sys, solver, P_osqp, q_osqp, barrier, x_ref_full, convert_kwargs(kwargs))
 end
 
 function JuMPModel(f::BarrierJuMPFormulator, x0)

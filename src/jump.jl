@@ -69,7 +69,8 @@ function set_objective_weights(model::JuMP.Model, f, ws::AbstractVector)
     @assert length(ws) == nm
     x = model[:x]
     
-    P = [I(12)*w for w ∈ ws] # shouldn't be hardcoding this
+    #FIXME: shouldn't be hardcoding P,Q
+    P = [I(12)*w for w ∈ ws] 
     Q = [I(6)*w for w ∈ ws]
     
     P_full = process_P(P, nm, T)
