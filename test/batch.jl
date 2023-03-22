@@ -17,7 +17,7 @@ t = 0:Δt:1
 _u(x,t) = ones(6)
 for i ∈ 0:6
     sys = LinearHexModel(i).ss
-    y, t, x, uout = lsim(sys, _u, t, x0=zeros(12))
+    y, t, x, uout = lsim(sys, _u, t, x0=zeros(12), method=:zoh)
     @test Xs[i+1] ≈ x atol=1e-5
 end
 end # let

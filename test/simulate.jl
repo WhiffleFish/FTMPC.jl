@@ -9,7 +9,7 @@ x_ref = zeros(12)
 x_ref[1:3] .= -5
 ss = LinearHexModel(0)
 
-f = JuMPFormulator(sys, OSQP.Optimizer;x_ref,Q=I(6)*1e-2, verbose=false)
+f = BarrierJuMPFormulator(sys, OSQP.Optimizer;x_ref,Q=I(6)*1e-2, verbose=false)
 model = JuMPModel(f, x0)
 optimize!(model) # warm start
 
