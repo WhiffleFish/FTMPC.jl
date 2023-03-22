@@ -6,14 +6,14 @@ using OSQP
 using LinearAlgebra
 using Plots
 
-A_constraint = zeros(12)
-A_constraint[2] = -1
-b_constraint = 1
+constraints = [
+    LinearConstraint(basis(12, 3)*1, 1, 1e-1),
+    LinearConstraint(-basis(12, 3)*0.5, 1, 1e-1)
+]
 
 failures = [0,1]
 T = 100
 Δt = 0.1
-γ_constraint = 1e-1
 # u_bounds = (0.,10.)
 u_bounds = (-Inf,Inf)
 nm = length(failures)
@@ -29,9 +29,7 @@ f = BarrierJuMPFormulator(
     x_ref,
     P = I(12),#(I(12),1),
     Q = I(6)*1e-2,# (I(6)*1e-2,1),
-    A_constraint,
-    b_constraint,
-    γ_constraint,
+    constraints,
     eps_prim_inf = 1e-3,
     eps_abs = 1e-4,
     eps_rel = 1e-4,

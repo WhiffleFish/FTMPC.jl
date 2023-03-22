@@ -8,4 +8,7 @@
 - [x] Support multiple CBFs/constraints
 - [ ] Simulation
   - [x] Parameter Updater
-  - [ ] Variable mode weighting
+  - [x] Variable mode weighting
+  - [ ] Better warm-starting
+    - Use SHIFT of last solution rather than last solution directly
+  - [ ] Variable Consensus Horizon

@@ -7,17 +7,17 @@ using JuMP
 const MPC = BarrierFTMPC
 
 failures = [0,1]
-T = 100
+T = 50
 Δt = 0.1
-u_bounds = (0.,10.)
-# u_bounds = (-Inf,Inf)
+# u_bounds = (0.,10.)
+u_bounds = (-Inf,Inf)
 nm = length(failures)
 sys = MPC.HexBatchDynamics(;failures, T, Δt, u_bounds)
 x0 = zeros(12)
 x_ref = zeros(12)
 x_ref[1:3] .= -5
 
-f = JuMPFormulator(sys, OSQP.Optimizer;x_ref,Q=I(6)*1e-2, polish=true)
+f = JuMPFormulator(sys, OSQP.Optimizer;x_ref,Q=I(6)*1e-2)
 model = JuMPModel(f, x0)
 optimize!(model)
 res = MPC.HexOSQPResults(f, model)

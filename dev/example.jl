@@ -1,7 +1,3 @@
-# FTMPC.jl
-
-## Usage
-```julia
 using BarrierFTMPC
 const MPC = BarrierFTMPC
 using JuMP
@@ -9,6 +5,12 @@ using OSQP
 using LinearAlgebra
 using Plots
 default(grid=false, framestyle=:box, fontfamily="Computer Modern", label="")
+
+constraints = [
+    LinearConstraint(basis(12, 3)*1, 1, 1e-1),
+    LinearConstraint(-basis(12, 3)*0.5, 1, 1e-1)
+]
+
 failures = [0,1]
 T = 50
 Δt = 0.1
@@ -19,7 +21,14 @@ x_ref = zeros(12)
 x_ref[1:3] .= -5
 ss = LinearHexModel(0)
 
-f = JuMPFormulator(sys, OSQP.Optimizer;x_ref,Q=I(6)*1e-2, polish=false, verbose=false)
+f = BarrierJuMPFormulator(
+    sys, 
+    OSQP.Optimizer;
+    x_ref,
+    constraints,
+    Q = I(6)*1e-2, 
+    verbose=false
+)
 model = JuMPModel(f, x0)
 optimize!(model)
 
@@ -36,16 +45,8 @@ p2 = plot(
     labels=permutedims(["u$i" for i ∈ 1:6])
 )
 plot(p1,p2)
-```
-
-![OptInspect](/example/optimizer_inspect.svg)
-
-```julia
 planner = FTMPCPlanner(model, f)
 sim = Simulator(LinearHexModel(0), planner, x0=x0, T=100)
 hist = simulate(sim)
 
 plot(hist, lw=2)
-```
-
-![Trajectory](/example/trajectory.svg)
