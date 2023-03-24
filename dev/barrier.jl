@@ -14,8 +14,8 @@ constraints = [
 failures = [0,1]
 T = 20
 Δt = 0.1
-u_bounds = (0.,10.)
-# u_bounds = (-Inf,Inf)
+# u_bounds = (0.,10.)
+u_bounds = (-Inf,Inf)
 nm = length(failures)
 sys = MPC.HexBatchDynamics(;failures, T, Δt, u_bounds)
 x0 = zeros(12)
@@ -28,16 +28,11 @@ f = BarrierJuMPFormulator(
     OSQP.Optimizer;
     x_ref,
     P = I(12),#(I(12),1),
-    Q = I(6)*1e-2,# (I(6)*1e-2,1),
-    constraints,
-    eps_prim_inf = 1e-3,
-    eps_abs = 1e-4,
-    eps_rel = 1e-4,
-    polish = true
+    Q = I(6)*1e-1,# (I(6)*1e-2,1),
+    constraints
 )
 
 model = JuMPModel(f, x0)
-optimize!(model)
 res = MPC.HexOSQPResults(f, model)
 
 p1 = plot(res.t,

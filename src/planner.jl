@@ -16,11 +16,12 @@ function set_objective_weights(p::FTMPCPlanner, ws::AbstractVector)
 end
 
 function action(p::FTMPCPlanner, x::AbstractVector)
-    nm, T = n_modes(p), horizon(p)
     set_initialstate(p, x)
     optimize!(p.model)
     nx,nu = size(p.f.sys.B)
-    return value.(p.model[:x][nx+1 : nx+HEX_U_DIM])
+    u = value.(p.model[:x][nx+1 : nx+HEX_U_DIM])
+    @assert !any(isnan, u)
+    return u
 end
 
 ##
@@ -43,9 +44,12 @@ set_consensus_horizon(p::ConsensusSearchPlanner, t) = set_consensus_horizon(p.mo
 function set_consensus_horizon(model::JuMP.Model, f, t::Int)
     (;sys) = f
     nm, T = n_modes(sys), horizon(sys)
-    C = model[:CONSENSUS]
-
     nx, nu = size(sys.B)
+    C = model[:CONSENSUS]
+    
+    @assert t < T
+    @assert length(C) == nu == 6*nm*(T-1)
+
     u = model[:x][nx+1:end]
     for t ∈ 1:t
         t_section = (t-1)*nm*6
@@ -72,16 +76,20 @@ function set_consensus_horizon(model::JuMP.Model, f, t::Int)
     return model
 end
 
+function optimizer_action(model, f)
+    nx = size(f.sys.B, 1)
+    return value.(model[:x][nx+1 : nx+HEX_U_DIM])
+end
+
 function action(p::ConsensusSearchPlanner, x::AbstractVector)
     (;model, f) = p
-    nm, T = n_modes(p), horizon(p)
-    nx,nu = size(f.sys.B)
+    T = horizon(p)
     
     s = BinaryConsensusSearch(model, f)
     set_initialstate(p, x)
-    m, t = binary_search_max(s, valid_consensus, T)
-    set_consensus_horizon(model, f, t)
-    optimize!(model)
-    
-    return value.(p.model[:x][nx+1 : nx+HEX_U_DIM])
+    (m,u), t = binary_search_max(s, valid_consensus, T-1)
+    @assert !any(isnan, u)
+    return u
 end
+
+set_objective_weights(p::ConsensusSearchPlanner, w) = set_objective_weights(p.model, p.f, w)

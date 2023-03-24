@@ -7,6 +7,8 @@ using BlockArrays
 using SparseArrays
 using ProgressMeter
 using RecipesBase
+using Random
+using Distributions: pdf, MvNormal
 using JuMP
 
 include("constants.jl")
@@ -29,6 +31,9 @@ export binary_search_max
 
 include("planner.jl")
 export FTMPCPlanner
+
+include("imm.jl")
+export IMM
 
 include("simulator.jl")
 export Simulator, simulate

@@ -14,7 +14,6 @@ function batch_dynamics(sys::StateSpace{<:Discrete}, T::Int)
 end
 
 function batch_dynamics(A::AbstractMatrix,B::AbstractMatrix,T::Int)
-    nx, nu = B
     Ā = reduce(vcat, A^t for t ∈ 0:T-1)
     ABts = [zero(B)]
     Abt = B

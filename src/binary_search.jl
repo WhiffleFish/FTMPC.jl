@@ -65,18 +65,20 @@ end
 
 function (b::BinaryConsensusSearch)(t)
     (;model, f) = b
+    @show t
     set_consensus_horizon(model, f, t)
     optimize!(model)
-    return model
+    return model, optimizer_action(model, f)
 end
 
-function valid_consensus(model::JuMP.Model)
+function valid_consensus((model,u)::Tuple{JuMP.Model, <:AbstractVector})
     status = termination_status(model)
     if status ∈ VALID_STATUSES
+        @assert !any(isnan, u)
         return true
     elseif status ∈ WARN_STATUSES
         @warn(status)
-        return true # FIXME: ehhhhhh?
+        return false # FIXME: ehhhhhh?
     elseif status ∈ INVALID_STATUSES
         return false
     else

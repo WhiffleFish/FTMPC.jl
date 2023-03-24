@@ -2,6 +2,7 @@ using BarrierFTMPC
 const MPC = BarrierFTMPC
 using JuMP
 using OSQP
+using COSMO
 using LinearAlgebra
 using Plots
 default(grid=false, framestyle=:box, fontfamily="Computer Modern", label="")
@@ -18,9 +19,8 @@ x_ref = zeros(12)
 x_ref[1:3] .= -5
 ss = LinearHexModel(0)
 
-f = JuMPFormulator(sys, OSQP.Optimizer;x_ref,Q=I(6)*1e-2, polish=false, verbose=false)
+f = BarrierJuMPFormulator(sys, OSQP.Optimizer;x_ref,Q=I(6)*1e-2,verbose=false)
 model = JuMPModel(f, x0)
-optimize!(model) # warm start
 
 planner = FTMPCPlanner(model, f)
 sim = MPC.Simulator(LinearHexModel(0), planner, x0=zeros(12), T=50)
@@ -58,10 +58,8 @@ f = BarrierJuMPFormulator(
     eps_rel = 1e-5,
     verbose = false,
     max_iter= 5_000
-    # time_limit = Δt*1.5
 )
 model = JuMPModel(f, x0)
-optimize!(model)
 
 planner = FTMPCPlanner(model, f)
 sim = Simulator(LinearHexModel(0), planner, x0=x0, T=100)
