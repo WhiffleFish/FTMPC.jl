@@ -32,15 +32,17 @@ plot(hist, lw=2)
 
 constraints = [
     LinearConstraint(basis(12, 3)*1, 1, 1e-1),
-    LinearConstraint(-basis(12, 3)*0.5, 1, 1e-1)
+    LinearConstraint(-basis(12, 3)*1, 1, 1e-1),
+    LinearConstraint(basis(12, 2)*1, 1, 1e-1),
+    LinearConstraint(-basis(12, 2)*1, 1, 1e-1)
 ]
 
-failures = [0,1]
-T = 30
+failures = [0]
+T = 10
 Δt = 0.1
 
-u_bounds = (-10.,10.)
-u_bounds = (-Inf,Inf)
+u_bounds = (0.1,15.)
+# u_bounds = (-Inf,Inf)
 nm = length(failures)
 sys = MPC.HexBatchDynamics(;failures, T, Δt, u_bounds)
 x0 = basis(12,9)*3 # zeros(12)
@@ -51,18 +53,21 @@ f = BarrierJuMPFormulator(
     sys,
     OSQP.Optimizer;
     x_ref,
+    # Q=(I(6)*1e-1,1),
+    # R=(I(6)*1e-1,1),
     Q=I(6)*1e-1,
+    R=I(6)*1e-1,
     constraints,
     eps_prim_inf = 1e-3,
-    eps_abs = 1e-5,
-    eps_rel = 1e-5,
-    verbose = false,
-    max_iter= 5_000
+    eps_abs = 1e-4,
+    eps_rel = 1e-4,
+    verbose = true,
+    max_iter= 50_000
 )
 model = JuMPModel(f, x0)
-
+# MPC.set_consensus_horizon(model, f, 1)
 planner = FTMPCPlanner(model, f)
-sim = Simulator(LinearHexModel(0), planner, x0=x0, T=100)
+sim = Simulator(LinearHexModel(0), planner, x0=x0, T=30)
 hist = simulate(sim)
 
 plot(hist, lw=2)

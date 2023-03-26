@@ -59,6 +59,7 @@ struct ModeChangeSimHist
     t::Vector{Float64}
     mode::Vector{Int}
     w::Matrix{Float64}
+    info::Vector{HexOSQPResults{Vector{Float64}}}
 end
 
 function Simulator(imm::IMM, planner; x0=zeros(12), T=50, progress=true)
@@ -77,16 +78,19 @@ function simulate(sim::ModeChangeSimulator)
     u_hist = Vector{Float64}[]
     mode_hist = Int[]
     imm_state_hist = Vector{Float64}[]
+    info = HexOSQPResults{StepRangeLen{Float64, Base.TwicePrecision{Float64}, Base.TwicePrecision{Float64}, Int64}}[]
 
     prog = Progress(T; enabled=sim.progress)
     for t ∈ 1:T
         # FIXME: Set objective weights in sim loop without changing sparsity pattern
-        # set_objective_weights(planner, imm.weights) 
-        u = action(planner, x)
+        # modify_objective_weights(planner, imm.weights) 
         push!(x_hist, copy(x))
+        u = action(planner, x)
+        isnothing(u) && break
         push!(u_hist, copy(u))
         push!(mode_hist, mode_idx)
         push!(imm_state_hist, copy(imm.weights))
+        push!(info, HexOSQPResults(planner.f, planner.model))
 
         δu = u - imm.u_noms[mode_idx]
         xp = dstep(ss, x, δu)
@@ -108,7 +112,8 @@ function simulate(sim::ModeChangeSimulator)
         reduce(hcat, u_hist),
         collect(0.0:Δt:(T-1)*Δt),
         mode_hist,
-        reduce(hcat, imm_state_hist)
+        reduce(hcat, imm_state_hist),
+        info
     )
 end
 

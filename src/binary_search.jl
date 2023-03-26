@@ -27,8 +27,6 @@ const VALID_STATUSES = [
     OPTIMAL,
     LOCALLY_SOLVED,
     ALMOST_OPTIMAL,
-    ALMOST_INFEASIBLE,
-    ALMOST_DUAL_INFEASIBLE,
     ALMOST_LOCALLY_SOLVED
 ]
 
@@ -46,6 +44,8 @@ const WARN_STATUSES = [
 const INVALID_STATUSES = [
     INFEASIBLE,
     DUAL_INFEASIBLE,
+    ALMOST_INFEASIBLE,
+    ALMOST_DUAL_INFEASIBLE,
     LOCALLY_INFEASIBLE
 ]
 
@@ -74,7 +74,7 @@ end
 function valid_consensus((model,u)::Tuple{JuMP.Model, <:AbstractVector})
     status = termination_status(model)
     if status ∈ VALID_STATUSES
-        @assert !any(isnan, u)
+        @assert !any(isnan, u) string(status)
         return true
     elseif status ∈ WARN_STATUSES
         @warn(status)

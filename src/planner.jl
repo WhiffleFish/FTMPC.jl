@@ -26,7 +26,7 @@ end
 
 ##
 
-struct ConsensusSearchPlanner{F<:BarrierJuMPFormulator}
+mutable struct ConsensusSearchPlanner{F<:BarrierJuMPFormulator}
     model::JuMP.Model
     f::F
 end
@@ -87,9 +87,21 @@ function action(p::ConsensusSearchPlanner, x::AbstractVector)
     
     s = BinaryConsensusSearch(model, f)
     set_initialstate(p, x)
-    (m,u), t = binary_search_max(s, valid_consensus, T-1)
-    @assert !any(isnan, u)
-    return u
+    res, t = binary_search_max(s, valid_consensus, T-1)
+    if isnothing(res)
+        @warn("No feasible action")
+        return nothing
+    else
+        (m,u) = res
+        @assert !any(isnan, u)
+        return u
+    end
+end
+
+function modify_objective_weights(p::ConsensusSearchPlanner, ws)
+    model = modified_objective_model(p.f, ws)
+    p.model = model
+    return p
 end
 
 set_objective_weights(p::ConsensusSearchPlanner, w) = set_objective_weights(p.model, p.f, w)

@@ -35,14 +35,16 @@ function linear_constraint_barrier(sys,a,b,γ)
     return BarrierConstraint(A, lb, ub)
 end
 
-struct BarrierJuMPFormulator{T1,T2,T3,T4,T5,T6,T7,T8}
+struct BarrierJuMPFormulator{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10}
     sys::HexBatchDynamics{T1,T2}
     solver::T3
     P::T4
     q::T5
-    barrier::T6
-    x_ref_full::T7
-    kwargs::T8
+    P_vec::T6
+    Q_vec::T7
+    barrier::T8
+    x_ref_full::T9
+    kwargs::T10
 end
 
 time_step(f::BarrierJuMPFormulator) = time_step(f.sys)
@@ -79,8 +81,12 @@ function BarrierJuMPFormulator(
     # @assert size(P)     == (12,12)
     # @assert size(Q)     == (6,6)
     @assert size(x_ref) == (12,)
-
+    
     nm, T = n_modes(sys), horizon(sys)
+
+    P_vec = cost_vec(P, nm)
+    Q_vec = cost_vec(Q, nm)
+    
     P_full = process_P(P, nm, T)
     Q_full = process_P(Q, nm, T-1)
     x_ref_full = repeat(x_ref, nm*T)
@@ -90,7 +96,7 @@ function BarrierJuMPFormulator(
 
     barrier = barrier_constraints(sys,constraints)
 
-    return BarrierJuMPFormulator(sys, solver, P_osqp, q_osqp, barrier, x_ref_full, convert_kwargs(kwargs))
+    return BarrierJuMPFormulator(sys, solver, P_osqp, q_osqp, P_vec, Q_vec, barrier, x_ref_full, convert_kwargs(kwargs))
 end
 
 function JuMPModel(f::BarrierJuMPFormulator, x0)
@@ -160,6 +166,51 @@ function optimizer_max_barrier_violation(model::JuMP.Model)
     )
 end
 
+function modified_objective_model(f, ws::AbstractVector)
+    (;sys, barrier, P_vec, Q_vec, x_ref_full) = f
+    (;A,B,Δ_nom,u_bounds) = sys
+    nm, T = n_modes(sys), horizon(sys)
+    u_lower, u_upper = u_bounds
+    x0 = zeros(12) # will be replaced in `action` call anyways
+
+    P_vec_new = P_vec .* ws
+    Q_vec_new = Q_vec .* ws
+    P_full = process_P(P_vec_new, nm, T)
+    Q_full = process_P(Q_vec_new, nm, T-1)
+
+    P = blkdiag((P_full, Q_full))
+    q = vcat(vec(-x_ref_full' * P_full), zeros(size(Q_full,1)))
+    
+    model = Model(
+        optimizer_with_attributes(f.solver, f.kwargs...),
+    )
+    nx, nu = size(B)
+
+    A_eq = [I(nx) -B]
+    eq_rhs = A*repeat(x0, nm) - Δ_nom
+
+    C = consensus_constraint(sys, T-1)
+    consensus_rhs = zeros(size(C,1))
+
+    @variable(model, x[1:nx+nu])
+    @constraint(model, DYNAMICS, A_eq*x .== eq_rhs)
+    @constraint(model, CONSENSUS, C*x[nx+1:end] .== consensus_rhs)
+    if u_bounds ≠ (-Inf, Inf)
+        @constraint(model, CONTROL, u_lower .≤ x[nx+1:end] .≤ u_upper)
+    end
+    if !isnothing(barrier)
+        @constraint(model, BARRIER, barrier.A*x .≤ barrier.ub)
+    end
+
+    @objective(model, Min, 0.5*dot(x, P, x) + dot(q,x))
+    
+    # Note: Model must be optimized for FULL consensus horizon before setting lower
+    # consensus horizons. Otherwise OSQP gets angry about changing sparsity pattens.
+    optimize!(model)
+
+    return model
+end
+
 function set_objective_weights(model::JuMP.Model, f, ws::AbstractVector)
     nm,T = n_modes(f.sys), horizon(f.sys)
     @assert length(ws) == nm
@@ -203,6 +254,22 @@ function consensus_constraint(sys::HexBatchDynamics, T_consensus=horizon(sys)-1)
         end
     end
     return m
+end
+
+function cost_vec(t::Tuple{<:AbstractMatrix, Int}, nm)
+    m, idx = t
+    ms = fill(zero(m), nm)
+    ms[idx] = m
+    return ms
+end
+
+function cost_vec(m::AbstractMatrix, nm)
+    return fill(m, nm)
+end
+
+function cost_vec(ms::Vector{<:AbstractMatrix}, nm)
+    @assert length(ms) == nm
+    return ms
 end
 
 function process_P(t::Tuple{<:AbstractMatrix, Int}, nm, T)
