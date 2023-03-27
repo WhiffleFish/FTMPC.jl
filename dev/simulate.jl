@@ -7,10 +7,10 @@ using LinearAlgebra
 using Plots
 default(grid=false, framestyle=:box, fontfamily="Computer Modern", label="")
 
-failures = [0,1]
+failures = [0]
 T = 50
 Δt = 0.1
-# u_bounds = (0.,12.)
+u_bounds = (0.1,15.)
 # u_bounds = (-Inf,Inf)
 nm = length(failures)
 sys = MPC.HexBatchDynamics(;failures, T, Δt, u_bounds)
@@ -37,15 +37,15 @@ constraints = [
     LinearConstraint(-basis(12, 2)*1, 1, 1e-1)
 ]
 
-failures = [0]
+failures = [0,1]
 T = 10
 Δt = 0.1
 
-u_bounds = (0.1,15.)
-# u_bounds = (-Inf,Inf)
+u_bounds = (0.0,15.)
+u_bounds = (-Inf,Inf)
 nm = length(failures)
 sys = MPC.HexBatchDynamics(;failures, T, Δt, u_bounds)
-x0 = basis(12,9)*3 # zeros(12)
+x0 = zeros(12)
 x_ref = zeros(12)
 x_ref[1:3] .= -10
 
@@ -67,7 +67,7 @@ f = BarrierJuMPFormulator(
 model = JuMPModel(f, x0)
 # MPC.set_consensus_horizon(model, f, 1)
 planner = FTMPCPlanner(model, f)
-sim = Simulator(LinearHexModel(0), planner, x0=x0, T=30)
+sim = Simulator(LinearHexModel(0), planner, x0=x0, T=200)
 hist = simulate(sim)
 
 plot(hist, lw=2)

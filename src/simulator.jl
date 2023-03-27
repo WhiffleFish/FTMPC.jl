@@ -53,13 +53,15 @@ struct ModeChangeSimulator{P}
     progress::Bool
 end
 
+const FloatRange = StepRangeLen{Float64, Base.TwicePrecision{Float64}, Base.TwicePrecision{Float64}, Int64}
+
 struct ModeChangeSimHist
     x::Matrix{Float64}
     u::Matrix{Float64}
     t::Vector{Float64}
     mode::Vector{Int}
     w::Matrix{Float64}
-    info::Vector{HexOSQPResults{Vector{Float64}}}
+    info::Vector{HexOSQPResults{FloatRange}}
 end
 
 function Simulator(imm::IMM, planner; x0=zeros(12), T=50, progress=true)
@@ -100,8 +102,8 @@ function simulate(sim::ModeChangeSimulator)
         x = xp
 
         # update mode
-        mode_idx = weighted_sample(imm.T[:,mode_idx])
-        ss = imm.modes[mode_idx]
+        # mode_idx = weighted_sample(imm.T[:,mode_idx])
+        # ss = imm.modes[mode_idx]
 
         next!(prog)
     end

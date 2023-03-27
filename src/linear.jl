@@ -61,6 +61,20 @@ function trans_states(X::AbstractMatrix)
     return X[TRANSLATIONAL_STATES, :]
 end
 
+
+"""Get only positional states (x,y,z) from state"""
+function pos_states end
+
+function pos_states(x::AbstractVector)
+    @assert length(x) == 12
+    return x[POSITIONAL_STATES]
+end
+
+function pos_states(X::AbstractMatrix)
+    @assert size(X,1) == 12
+    return X[POSITIONAL_STATES, :]
+end
+
 """
     X = [x, y, z, ϕ, θ, ψ, dx, dy, dz, dϕ, dθ, dψ]
 

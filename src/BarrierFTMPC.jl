@@ -14,7 +14,7 @@ using JuMP
 include("constants.jl")
 include("linear.jl")
 export LinearHexModel
-export flip_z, trans_states
+export flip_z, trans_states, pos_states
 
 include("failure_linearization.jl")
 export hover_control
