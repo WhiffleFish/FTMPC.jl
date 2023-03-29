@@ -88,13 +88,19 @@ function action(p::ConsensusSearchPlanner, x::AbstractVector)
     s = BinaryConsensusSearch(model, f)
     set_initialstate(p, x)
     res, t = binary_search_max(s, valid_consensus, T-1)
+    #= t = 1
+    set_consensus_horizon(model, f, t)
+    optimize!(model)
+    u = optimizer_action(model, f)
+    res = (model,u)
+     =#
     if isnothing(res)
         @warn("No feasible action")
         return nothing
     else
-        (m,u) = res
+        (_,u) = res
         @assert !any(isnan, u)
-        return u
+        return u,t
     end
 end
 

@@ -71,7 +71,12 @@ end
 
 function simulate(sim::ModeChangeSimulator)
     (;imm, T, planner) = sim
-    mode_idx = weighted_sample(imm.weights)
+    H = horizon(sim.planner)
+    #mode_idx = weighted_sample(imm.weights)
+    first = 1
+    mode_idx = weighted_sample(basis(7,first))
+    imm.weights[:] = basis(7,first)
+    println("Mode: ", mode_idx)
     ss = imm.modes[mode_idx]
     Δt = time_step(planner)
     x = sim.x0
@@ -83,12 +88,19 @@ function simulate(sim::ModeChangeSimulator)
     info = HexOSQPResults{StepRangeLen{Float64, Base.TwicePrecision{Float64}, Base.TwicePrecision{Float64}, Int64}}[]
 
     prog = Progress(T; enabled=sim.progress)
+    partialtime = T
     for t ∈ 1:T
         # FIXME: Set objective weights in sim loop without changing sparsity pattern
-        # modify_objective_weights(planner, imm.weights) 
+        #modify_objective_weights(planner, imm.weights) 
         push!(x_hist, copy(x))
-        u = action(planner, x)
+        u, feastime = action(planner, x)
         isnothing(u) && break
+        if feastime < H-1
+            println("\nPARTIAL CONSENSUS: ", feastime)
+            if partialtime == T
+                partialtime = t
+            end
+        end
         push!(u_hist, copy(u))
         push!(mode_hist, mode_idx)
         push!(imm_state_hist, copy(imm.weights))
@@ -97,12 +109,27 @@ function simulate(sim::ModeChangeSimulator)
         δu = u - imm.u_noms[mode_idx]
         xp = dstep(ss, x, δu)
 
+        #y = xp
         y = rand(imm.obs_dist(xp))
-        update!(imm, x, u, y)
+        #update!(imm, x, u, y)
         x = xp
-
-        # update mode
-        # mode_idx = weighted_sample(imm.T[:,mode_idx])
+        @show xp[1:3]
+        if xp[3] > 2
+            @warn "PAST XREF"
+        end
+        # update mode - Deterministic at half simulation time
+        if t == T+1#floor(T/5)
+            fail = 3
+            mode_idx = fail  
+            ss = imm.modes[fail]
+            imm.weights[:] = basis(7,fail)
+            model1 = planner.model
+            println("IMM Weights: ", imm.weights)
+            modify_objective_weights(planner, imm.weights) 
+            println("ISEQUAL: ", isequal(model1, planner.model))
+            println("NewMode: ", mode_idx)
+        end    
+        #weighted_sample(imm.T[:,mode_idx])
         # ss = imm.modes[mode_idx]
 
         next!(prog)
@@ -116,7 +143,7 @@ function simulate(sim::ModeChangeSimulator)
         mode_hist,
         reduce(hcat, imm_state_hist),
         info
-    )
+    ), partialtime
 end
 
 

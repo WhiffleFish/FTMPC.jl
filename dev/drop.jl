@@ -8,15 +8,16 @@ using LinearAlgebra
 using Plots
 
 constraints = [
-    # LinearConstraint(basis(12, 3)*1, 1, 1e-0),
-    LinearConstraint(-basis(12, 3)*1, 1, 1e-2),
+    #LinearConstraint(basis(12, 3)*1, 15, 1e-0),
+    LinearConstraint(-basis(12, 3)*1, 3, 1e-0),
     LinearConstraint(basis(12, 2)*1, 1, 1e-0),
     LinearConstraint(-basis(12, 2)*1, 1, 1e-0),
-    # LinearConstraint(basis(12, 1)*1, 1, 1e-1),
-    # LinearConstraint(-basis(12, 1)*1, 1, 1e-1)
+    LinearConstraint(basis(12, 1)*1, 1, 1e-0),
+    LinearConstraint(-basis(12, 1)*1, 1, 1e-0)
 ]
 
-failures = 0:6
+num_modes = 3
+failures = 0:num_modes-1
 # failures = [0,1]
 T = 10
 Δt = 0.05
@@ -26,17 +27,19 @@ nm = length(failures)
 sys = MPC.HexBatchDynamics(;failures, T, Δt, u_bounds)
 x0 = zeros(12)
 x_ref = zeros(12)
-x_ref[1] = 3
+x_ref[1] = 0
 x_ref[2] = 0
-x_ref[3] = 0
+x_ref[3] = -5
 
-ws = [1,0,0,0,0,0,0]
+#ws = [1,0,0,0,0,0,0]
+ws = [1,0,0]
+
 
 Q_i = Matrix{Float64}(I(12))
 Q_i[1,1] = 10.
-Q_i[3,3] = 40.
-Q = [Q_i for i ∈ 1:7] .* ws
-R = [I(6)*0.01 for i ∈ 1:7] .* ws
+#Q_i[3,3] = 10.
+Q = [Q_i for i ∈ 1:num_modes] .* ws
+R = [I(6)*0.01 for i ∈ 1:num_modes] .* ws
 
 f = BarrierJuMPFormulator(
     sys,
@@ -99,9 +102,11 @@ begin
         scatter3d!(plt, [x[i]], [y[i]], [z[i]],
             xlims=(-2,10),
             ylims=(-1,1),
-            zlims=(-2,1),
+            zlims=(-10,11),
             camera = (40, 30),
-            color = i>floor(simT/5) ? "blue" : "red")
+            color = i>partialtime ? "green" : "red"
+            #color = i>floor(simT/5) ? "blue" : "red"
+            )
         scatter3d!(plt, [x[i]], [y[i]], [zlims(plt)[1]], color="gray")
     end
     display(gif(anim, "anim_fps15.gif", fps=10))

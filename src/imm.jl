@@ -35,13 +35,15 @@ function update!(imm::IMM, x, u, y)
     (; weights, modes, u_noms, T, obs_dist) = imm
     tmp = T*weights # predictor
     weights .= tmp 
+    xpvec = Vector{Float64}[]
     for mode in eachindex(modes)
         sys = modes[mode]
         u_nom = u_noms[mode]
         δu = u - u_nom
         xp = dstep(sys, x, δu)
+        push!(xpvec, xp)
         _pdf = pdf(obs_dist(xp), y) # corrector
         weights[mode] *= _pdf
     end
-    return normalize!(weights, 1)
+    return xpvec, normalize!(weights, 1)
 end

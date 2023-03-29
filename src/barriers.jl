@@ -173,8 +173,15 @@ function modified_objective_model(f, ws::AbstractVector)
     u_lower, u_upper = u_bounds
     x0 = zeros(12) # will be replaced in `action` call anyways
 
-    P_vec_new = P_vec .* ws
-    Q_vec_new = Q_vec .* ws
+    Q_i = Matrix{Float64}(I(12))
+    Q_i[3,3] = 40.
+    Q = [Q_i for i ∈ 1:7] .* ws
+
+    R = [I(6)*0.01 for i ∈ 1:7] .* ws
+
+
+    P_vec_new = Q
+    Q_vec_new = R
     P_full = process_P(P_vec_new, nm, T)
     Q_full = process_P(Q_vec_new, nm, T-1)
 
