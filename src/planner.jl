@@ -1,6 +1,11 @@
 struct FTMPCPlanner{F<:BarrierJuMPFormulator}
     model::JuMP.Model
     f::F
+    consensus_horizon::Int
+    function FTMPCPlanner(model, f, consensus_horizon=horizon(f.sys)-1)
+        set_consensus_horizon(model, f, consensus_horizon)
+        return new{typeof(f)}(model, f, consensus_horizon)
+    end
 end
 
 time_step(p::FTMPCPlanner) = time_step(p.f)
@@ -20,8 +25,12 @@ function action(p::FTMPCPlanner, x::AbstractVector)
     optimize!(p.model)
     nx,nu = size(p.f.sys.B)
     u = value.(p.model[:x][nx+1 : nx+HEX_U_DIM])
-    @assert !any(isnan, u)
-    return u
+    return if any(isnan, u)
+        @warn("No feasible action")
+        nothing
+    else
+        u
+    end
 end
 
 ##

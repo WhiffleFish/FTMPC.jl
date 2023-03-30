@@ -30,6 +30,7 @@ function simulate(sim::Simulator)
     for t ∈ 1:T
         u = action(planner, x)
         push!(x_hist, x)
+        isnothing(u) && break
         push!(u_hist, u)
         δu = u - sys.u
         x = dstep(ss, x, δu)
