@@ -38,6 +38,8 @@ export IMM
 include("simulator.jl")
 export Simulator, simulate
 
+include("envs.jl")
+
 # extras
 include("extras.jl")
 export basis, blkdiag

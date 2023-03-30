@@ -1,4 +1,3 @@
-# TODO: Save parameters so that we don't have to resolve once converging
 function binary_search_max(f, isvalid, T)
     best_t = 0
     _min = 0
