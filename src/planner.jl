@@ -20,16 +20,18 @@ function set_objective_weights(p::FTMPCPlanner, ws::AbstractVector)
     set_objective_weights(p.model, p.f.sys, ws)
 end
 
-function action(p::FTMPCPlanner, x::AbstractVector)
+action(p::FTMPCPlanner, x::AbstractVector) = first(action_info(p, x))
+
+function action_info(p::FTMPCPlanner, x::AbstractVector)
     set_initialstate(p, x)
     optimize!(p.model)
     nx,nu = size(p.f.sys.B)
     u = value.(p.model[:x][nx+1 : nx+HEX_U_DIM])
     return if any(isnan, u)
         @warn("No feasible action")
-        nothing
+        nothing, nothing
     else
-        u
+        u, HexOSQPResults(p.f, p.model)
     end
 end
 
@@ -90,7 +92,7 @@ function optimizer_action(model, f)
     return value.(model[:x][nx+1 : nx+HEX_U_DIM])
 end
 
-function action(p::ConsensusSearchPlanner, x::AbstractVector)
+function action_info(p::ConsensusSearchPlanner, x::AbstractVector)
     (;model, f) = p
     T = horizon(p)
     
@@ -99,13 +101,15 @@ function action(p::ConsensusSearchPlanner, x::AbstractVector)
     res, t = binary_search_max(s, valid_consensus, T-1)
     if isnothing(res)
         @warn("No feasible action")
-        return nothing
+        return nothing, nothing
     else
-        (m,u) = res
+        (m,u,info) = res
         @assert !any(isnan, u)
-        return u
+        return u, info
     end
 end
+
+action(p::ConsensusSearchPlanner, x::AbstractVector) = first(action_info(p, x))
 
 function modify_objective_weights(p::ConsensusSearchPlanner, ws)
     model = modified_objective_model(p.f, ws)

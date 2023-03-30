@@ -46,11 +46,40 @@ function simulate(sim::Simulator)
 end
 
 ##
-struct ModeChangeSimulator{P}
+struct FixedFailure
+    t::Int
+    mode::Int
+    instant_update::Bool
+    FixedFailure(t, mode; instant_update=true) = new(t,mode, instant_update)
+end
+
+function fail!(imm::IMM, planner, t, mode_idx, failure::FixedFailure)
+    if t == failure.t
+        if failure.instant_update
+            imm.weights .= 0.0
+            imm.weights[failure.mode] = 1.0
+            modify_objective_weights(planner, imm.weights) 
+        end
+        return failure.mode
+    else
+        return mode_idx
+    end
+end
+
+struct NoFailure end
+
+function fail!(imm, planner, t, mode_idx, failure::NoFailure)
+    return mode_idx
+end
+
+struct RandFailure end
+
+struct ModeChangeSimulator{P,F}
     imm::IMM
     planner::P
     x0::Vector{Float64}
     T::Int
+    failure::F
     progress::Bool
 end
 
@@ -65,13 +94,13 @@ struct ModeChangeSimHist
     info::Vector{HexOSQPResults{FloatRange}}
 end
 
-function Simulator(imm::IMM, planner; x0=zeros(12), T=50, progress=true)
-    return ModeChangeSimulator(imm, planner, x0, T, progress)
+function Simulator(imm::IMM, planner; x0=zeros(12), failure=NoFailure(), T=50, progress=true)
+    return ModeChangeSimulator(imm, planner, x0, T, failure, progress)
 end
 
 
 function simulate(sim::ModeChangeSimulator)
-    (;imm, T, planner) = sim
+    (;imm, T, planner, failure) = sim
     mode_idx = weighted_sample(imm.weights)
     ss = imm.modes[mode_idx]
     Δt = time_step(planner)
@@ -88,12 +117,12 @@ function simulate(sim::ModeChangeSimulator)
         # FIXME: Set objective weights in sim loop without changing sparsity pattern
         # modify_objective_weights(planner, imm.weights) 
         push!(x_hist, copy(x))
-        u = action(planner, x)
+        u,_info = action_info(planner, x)
         isnothing(u) && break
         push!(u_hist, copy(u))
         push!(mode_hist, mode_idx)
         push!(imm_state_hist, copy(imm.weights))
-        push!(info, HexOSQPResults(planner.f, planner.model))
+        push!(info, _info)
 
         δu = u - imm.u_noms[mode_idx]
         xp = dstep(ss, x, δu)
@@ -105,6 +134,9 @@ function simulate(sim::ModeChangeSimulator)
         # update mode
         # mode_idx = weighted_sample(imm.T[:,mode_idx])
         # ss = imm.modes[mode_idx]
+
+        mode_idx = fail!(imm, planner, t, mode_idx, failure)
+        ss = imm.modes[mode_idx]
 
         next!(prog)
     end
@@ -135,12 +167,12 @@ end
     @series begin
         subplot := 1
         labels --> permutedims(STATE_LABELS[TRANSLATIONAL_STATES])
-        sim.t, trans_states(flip_z(sim.x))'
+        sim.t[1:size(sim.x,2)], trans_states(flip_z(sim.x))'
     end
     @series begin
         subplot := 2
         labels --> permutedims(["u$i" for i ∈ 1:6])
-        sim.t, sim.u'
+        sim.t[1:size(sim.u,2)], sim.u'
     end
 end
 
@@ -149,11 +181,11 @@ end
     @series begin
         subplot := 1
         labels --> permutedims(STATE_LABELS[TRANSLATIONAL_STATES])
-        sim.t, trans_states(flip_z(sim.x))'
+        sim.t[1:size(sim.x,2)], trans_states(flip_z(sim.x))'
     end
     @series begin
         subplot := 2
         labels --> permutedims(["u$i" for i ∈ 1:6])
-        sim.t, sim.u'
+        sim.t[1:size(sim.u,2)], sim.u'
     end
 end

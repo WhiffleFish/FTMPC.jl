@@ -67,10 +67,11 @@ function (b::BinaryConsensusSearch)(t)
     @show t
     set_consensus_horizon(model, f, t)
     optimize!(model)
-    return model, optimizer_action(model, f)
+    info = HexOSQPResults(f, model)
+    return model, optimizer_action(model, f), info
 end
 
-function valid_consensus((model,u)::Tuple{JuMP.Model, <:AbstractVector})
+function valid_consensus((model,u,info)::Tuple)
     status = termination_status(model)
     if status ∈ VALID_STATUSES
         @assert !any(isnan, u) string(status)
