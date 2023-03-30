@@ -73,30 +73,28 @@ barrier_constraints(sys,::Nothing) = nothing
 function BarrierJuMPFormulator(
     sys::HexBatchDynamics,
     solver;
-    P=I(12),
-    Q=I(6),
+    Q=I(12),
+    R=I(6),
     x_ref=zeros(12),
     constraints = nothing,
     kwargs...)
-    # @assert size(P)     == (12,12)
-    # @assert size(Q)     == (6,6)
     @assert size(x_ref) == (12,)
     
     nm, T = n_modes(sys), horizon(sys)
 
-    P_vec = cost_vec(P, nm)
     Q_vec = cost_vec(Q, nm)
+    R_vec = cost_vec(R, nm)
     
-    P_full = process_P(P, nm, T)
-    Q_full = process_P(Q, nm, T-1)
+    Q_full = process_P(Q, nm, T)
+    R_full = process_P(R, nm, T-1)
     x_ref_full = repeat(x_ref, nm*T)
 
-    P_osqp = blkdiag((P_full, Q_full))
-    q_osqp = vcat(vec(-x_ref_full' * P_full), zeros(size(Q_full,1)))
+    P_osqp = blkdiag((Q_full, R_full))
+    q_osqp = vcat(vec(-x_ref_full' * Q_full), zeros(size(R_full,1)))
 
     barrier = barrier_constraints(sys,constraints)
 
-    return BarrierJuMPFormulator(sys, solver, P_osqp, q_osqp, P_vec, Q_vec, barrier, x_ref_full, convert_kwargs(kwargs))
+    return BarrierJuMPFormulator(sys, solver, P_osqp, q_osqp, Q_vec, R_vec, barrier, x_ref_full, convert_kwargs(kwargs))
 end
 
 function JuMPModel(f::BarrierJuMPFormulator, x0)
@@ -153,6 +151,29 @@ function HexOSQPResults(f::BarrierJuMPFormulator, model::JuMP.Model)
     U = unbatch_and_disjoint(u, nm, T-1, HEX_U_DIM)
     t = 0.0:Δt:Δt*(T-1)
     return HexOSQPResults(X,U,t)
+end
+
+to_vec(v::AbstractVector) = v
+to_vec(v) = [v]
+
+Base.getindex(res::HexOSQPResults, i) = HexOSQPResults(to_vec(res.X[i]),to_vec(res.U[i]),res.t)
+
+@recipe function plot(res::HexOSQPResults)
+    N = length(res.X)
+    @assert N == length(res.U)
+    layout := (N, 2)
+    for i ∈ 1:N
+        @series begin
+            subplot := 2*(i-1) + 1#(i,1)
+            # labels --> permutedims(STATE_LABELS[TRANSLATIONAL_STATES])
+            res.t, pos_states(flip_z(res.X[i]))'
+        end
+        @series begin
+            subplot := 2*(i-1) + 2
+            # labels --> permutedims(["u$i" for i ∈ 1:6])
+            res.t[1:end-1], res.U[i]'
+        end
+    end
 end
 
 function max_barrier_violation(f::BarrierJuMPFormulator, model::JuMP.Model)
