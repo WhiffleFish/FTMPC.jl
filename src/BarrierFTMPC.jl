@@ -10,6 +10,7 @@ using RecipesBase
 using Random
 using Distributions: pdf, MvNormal
 using JuMP
+using Plots
 
 include("constants.jl")
 include("linear.jl")
@@ -38,8 +39,12 @@ export IMM
 include("simulator.jl")
 export Simulator, simulate
 
+include("plotting.jl")
+
 # extras
 include("extras.jl")
 export basis, blkdiag
+
+include("envs.jl")
 
 end

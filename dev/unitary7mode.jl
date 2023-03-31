@@ -16,7 +16,7 @@ constraints = [
     LinearConstraint(-basis(12, 1)*1, 1, 1e-0)
 ]
 
-num_modes = 2
+num_modes = 7
 failures = 0:num_modes-1
 # failures = [0,1]
 T = 10
@@ -31,8 +31,8 @@ x_ref[1] = 0
 x_ref[2] = 0
 x_ref[3] = 2
 
-#ws = [1,0,0,0,0,0,0]
-ws = [1,0]
+ws = [1,0,0,0,0,0,0]
+#ws = [1,0]
 
 
 Q_i = Matrix{Float64}(I(12))
@@ -72,7 +72,7 @@ plot(res.U[2]')
 plot(res.U[3]') =#
 simT = 40
 imm = MPC.HexIMM(Δt=Δt)
-planner = MPC.ConsensusSearchPlanner(model, f)
+planner = MPC.UnitaryConsensusPlanner(model, f)
 sim = Simulator(imm, planner, x0=x0, T=simT)
 hist,partialtime = simulate(sim)
 

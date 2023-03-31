@@ -9,15 +9,15 @@ using Plots
 
 constraints = [
     #LinearConstraint(basis(12, 3)*1, 15, 1e-0),
-    LinearConstraint(-basis(12, 3)*1, 3, 1e-1),
-    LinearConstraint(basis(12, 2)*1, 1, 1e-0),
-    LinearConstraint(-basis(12, 2)*1, 1, 1e-0),
-    LinearConstraint(basis(12, 1)*1, 1, 1e-0),
-    LinearConstraint(-basis(12, 1)*1, 1, 1e-0)
+    LinearConstraint(-basis(12, 3)*1, 3, 5e-2),
+    LinearConstraint(basis(12, 2)*1, 1, 1e-2),
+    LinearConstraint(-basis(12, 2)*1, 1, 1e-2),
+    LinearConstraint(basis(12, 1)*1, 1, 1e-2),
+    LinearConstraint(-basis(12, 1)*1, 1, 1e-2)
 ]
 
-num_modes = 2
-failures = 0:num_modes-1
+num_modes = 1
+failures = [0]#0:num_modes-1
 # failures = [0,1]
 T = 10
 Δt = 0.05
@@ -32,8 +32,7 @@ x_ref[2] = 0
 x_ref[3] = 2
 
 #ws = [1,0,0,0,0,0,0]
-ws = [1,0]
-
+ws = [1]
 
 Q_i = Matrix{Float64}(I(12))
 Q_i[1,1] = 10.
@@ -70,11 +69,11 @@ plot(pos_states(res.X[3])')
 plot(res.U[1]')
 plot(res.U[2]')
 plot(res.U[3]') =#
-simT = 40
+simT = 150
 imm = MPC.HexIMM(Δt=Δt)
-planner = MPC.ConsensusSearchPlanner(model, f)
+planner = MPC.NonRobustPlanner(model, f)
 sim = Simulator(imm, planner, x0=x0, T=simT)
-hist,partialtime = simulate(sim)
+hist = simulate(sim)
 
 display(plot(hist))
 display(plot([hist.x'[:,[1,2]] -hist.x'[:,3]], label = ["x" "y" "z"]))
@@ -96,7 +95,7 @@ begin
             size = (800, 600),
             grid=true,
             legend=false,
-            title="Robust-Maxh"
+            title="Non-Robust"
         )
     scatter3d!(plt, [x_ref[1]], [x_ref[2]], [-x_ref[3]], color="green")
     anim = @animate for i=1:maxanim
@@ -105,8 +104,7 @@ begin
             ylims=(-1,1),
             zlims=(-10,11),
             camera = (40, 30),
-            #color = i>partialtime ? "green" : "red"
-            color = i>floor(simT/4) ? "blue" : "red"
+            color = i>floor(simT/5) ? "blue" : "red"
             )
         scatter3d!(plt, [x[i]], [y[i]], [zlims(plt)[1]], color="gray")
     end

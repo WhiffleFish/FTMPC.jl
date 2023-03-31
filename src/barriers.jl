@@ -166,6 +166,46 @@ function optimizer_max_barrier_violation(model::JuMP.Model)
     )
 end
 
+function modified_objective_model(f, mode::Int)
+    (;sys, barrier, P_vec, Q_vec, x_ref_full) = f
+    (;T,Δt,u_bounds) = sys
+    sys = HexBatchDynamics(;failures=[mode], T, Δt, u_bounds)
+    (;A,B,Δ_nom,u_bounds) = sys
+
+    nm, T = n_modes(sys), horizon(sys)
+    u_lower, u_upper = u_bounds
+    x0 = zeros(12) # will be replaced in `action` call anyways
+    
+    model = Model(
+        optimizer_with_attributes(f.solver, f.kwargs...),
+    )
+    nx, nu = size(B)
+
+    A_eq = [I(nx) -B]
+    eq_rhs = A*repeat(x0, nm) - Δ_nom
+
+    C = consensus_constraint(sys, T-1)
+    consensus_rhs = zeros(size(C,1))
+
+    @variable(model, x[1:nx+nu])
+    @constraint(model, DYNAMICS, A_eq*x .== eq_rhs)
+    @constraint(model, CONSENSUS, C*x[nx+1:end] .== consensus_rhs)
+    if u_bounds ≠ (-Inf, Inf)
+        @constraint(model, CONTROL, u_lower .≤ x[nx+1:end] .≤ u_upper)
+    end
+    if !isnothing(barrier)
+        @constraint(model, BARRIER, barrier.A*x .≤ barrier.ub)
+    end
+
+    @objective(model, Min, 0.5*dot(x, f.P, x) + dot(f.q,x))
+    
+    # Note: Model must be optimized for FULL consensus horizon before setting lower
+    # consensus horizons. Otherwise OSQP gets angry about changing sparsity pattens.
+    optimize!(model)
+
+    return model
+end
+
 function modified_objective_model(f, ws::AbstractVector)
     (;sys, barrier, P_vec, Q_vec, x_ref_full) = f
     (;A,B,Δ_nom,u_bounds) = sys
@@ -173,11 +213,12 @@ function modified_objective_model(f, ws::AbstractVector)
     u_lower, u_upper = u_bounds
     x0 = zeros(12) # will be replaced in `action` call anyways
 
+    num_modes = length(P_vec)
     Q_i = Matrix{Float64}(I(12))
-    Q_i[3,3] = 40.
-    Q = [Q_i for i ∈ 1:7] .* ws
+    #Q_i[3,3] = 40.
+    Q = [Q_i for i ∈ 1:num_modes] .* ws
 
-    R = [I(6)*0.01 for i ∈ 1:7] .* ws
+    R = [I(6)*0.01 for i ∈ 1:num_modes] .* ws
 
 
     P_vec_new = Q

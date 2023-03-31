@@ -69,15 +69,15 @@ function Simulator(imm::IMM, planner; x0=zeros(12), T=50, progress=true)
 end
 
 
-function simulate(sim::ModeChangeSimulator)
+function simulate(sim::ModeChangeSimulator{<:ConsensusPlanner}, failmode, failtime, delaytime)
     (;imm, T, planner) = sim
+
     H = horizon(sim.planner)
-    #mode_idx = weighted_sample(imm.weights)
-    first = 1
-    mode_idx = weighted_sample(basis(7,first))
+
+    mode_idx = first = 1
     imm.weights[:] = basis(7,first)
-    println("Mode: ", mode_idx)
-    ss = imm.modes[mode_idx]
+    println("Mode: ", first)
+    ss = imm.modes[first]
     Δt = time_step(planner)
     x = sim.x0
 
@@ -89,11 +89,18 @@ function simulate(sim::ModeChangeSimulator)
 
     prog = Progress(T; enabled=sim.progress)
     partialtime = T
+    #delaytime = 3
+    #failtime = floor(T/4)
+    mpcfailmode = failmode
+    immfailmode = mpcfailmode + 1
     for t ∈ 1:T
-        # FIXME: Set objective weights in sim loop without changing sparsity pattern
-        #modify_objective_weights(planner, imm.weights) 
         push!(x_hist, copy(x))
         u, feastime = action(planner, x)
+        if any(isnan, u)
+            @warn "Failed to find action"
+            break
+        end
+
         isnothing(u) && break
         if feastime < H-1
             println("\nPARTIAL CONSENSUS: ", feastime)
@@ -110,27 +117,24 @@ function simulate(sim::ModeChangeSimulator)
         xp = dstep(ss, x, δu)
 
         #y = xp
-        y = rand(imm.obs_dist(xp))
+        #y = rand(imm.obs_dist(xp))
         #update!(imm, x, u, y)
         x = xp
         @show xp[1:3]
-        if xp[3] > 2
-            @warn "PAST XREF"
-        end
+        @show u
+
         # update mode - Deterministic at half simulation time
-        if t == T+1#floor(T/5)
-            fail = 3
-            mode_idx = fail  
-            ss = imm.modes[fail]
-            imm.weights[:] = basis(7,fail)
-            model1 = planner.model
-            println("IMM Weights: ", imm.weights)
-            modify_objective_weights(planner, imm.weights) 
-            println("ISEQUAL: ", isequal(model1, planner.model))
-            println("NewMode: ", mode_idx)
+        if t == failtime
+            mode_idx = immfailmode  
+            ss = imm.modes[immfailmode]
+            imm.weights[:] = basis(7,immfailmode)
+            println("FAILED Rotor: ", immfailmode)
         end    
-        #weighted_sample(imm.T[:,mode_idx])
-        # ss = imm.modes[mode_idx]
+        if t == failtime + delaytime
+            modify_objective_weights(planner, basis(n_modes(planner),mpcfailmode)) 
+            println("IMM Weights: ", imm.weights)
+            println("NewMode: ", mode_idx)
+        end   
 
         next!(prog)
     end
@@ -144,6 +148,79 @@ function simulate(sim::ModeChangeSimulator)
         reduce(hcat, imm_state_hist),
         info
     ), partialtime
+end
+
+function simulate(sim::ModeChangeSimulator{<:SimplePlanner}, failmode, failtime, delaytime)
+
+    (;imm, T, planner) = sim
+
+    mode_idx = first = 1
+    imm.weights[:] = basis(7,first)
+    #println("Mode: ", mode_idx)
+    ss = imm.modes[first]
+    Δt = planner.f.sys.Δt
+    x = sim.x0
+
+    x_hist = Vector{Float64}[]
+    u_hist = Vector{Float64}[]
+    mode_hist = Int[]
+    imm_state_hist = Vector{Float64}[]
+    info = HexOSQPResults{StepRangeLen{Float64, Base.TwicePrecision{Float64}, Base.TwicePrecision{Float64}, Int64}}[]
+
+    prog = Progress(T; enabled=sim.progress)
+    #delaytime = 3
+    #failtime = failtime
+    mpcfailmode = failmode
+    immfailmode = mpcfailmode + 1
+    for t ∈ 1:T
+        # FIXME: Set objective weights in sim loop without changing sparsity pattern
+        push!(x_hist, copy(x))
+        u = action(planner, x)
+        if any(isnan, u)
+            @warn "Failed to find action"
+            break
+        end
+        isnothing(u) && break
+        
+        push!(u_hist, copy(u))
+        push!(mode_hist, mode_idx)
+        push!(imm_state_hist, copy(imm.weights))
+        push!(info, HexOSQPResults(planner.f, planner.model))
+
+        δu = u - imm.u_noms[mode_idx]
+        xp = dstep(ss, x, δu)
+
+        #y = xp
+        y = rand(imm.obs_dist(xp))
+        #update!(imm, x, u, y)
+        x = xp
+        @show xp[1:3]
+
+
+        # update mode - Deterministic at half simulation time
+        if t == failtime
+            mode_idx = immfailmode  
+            ss = imm.modes[immfailmode]
+            imm.weights[:] = basis(7,immfailmode)
+        end    
+        if t == failtime + delaytime
+            modify_objective(planner, mpcfailmode) 
+            println("IMM Weights: ", imm.weights)
+            println("NewMode: ", mode_idx)
+        end
+
+        next!(prog)
+    end
+    finish!(prog)
+
+    return ModeChangeSimHist(
+        reduce(hcat, x_hist),
+        reduce(hcat, u_hist),
+        collect(0.0:Δt:(T-1)*Δt),
+        mode_hist,
+        reduce(hcat, imm_state_hist),
+        info
+    )
 end
 
 
