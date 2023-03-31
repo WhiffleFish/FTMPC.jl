@@ -14,7 +14,7 @@ colorMatrix = ["blue"; "red"; "cyan"];
 lineTypes = {'o-', '+-', '.-'};
 
 % Loop over trajectories
-fig = figure(1);
+figure(1);
 for jj = 1:numel(states.states)
 
     % Extract trajectory
@@ -35,9 +35,6 @@ for jj = 1:numel(states.states)
     hold on
     scatter3(xyz_trajectory(1,:), xyz_trajectory(2,:), xyz_trajectory(3,:),...
         300, segmentColor, 'filled', 'MarkerFaceAlpha', 0.5)
-
-    hold on
-    grid on
 end
 
 % Create patches
@@ -54,12 +51,13 @@ ylabel('y [m]','FontName','Times New Roman')
 zlabel('z [m]','FontName','Times New Roman')
 xlim([-1.5, 1.5])
 ylim([-1.5, 1.5])
+grid on
 hold off
 
 % Legend
-labels = {'\color{blue}Non-robust', ...
-          '\color{red}Unitary consensus', ...
-          '\color{black}Maximum consensus'};
+labels = {'\color{blue} Non-robust', ...
+          '\color{red} Unitary consensus', ...
+          '\color{cyan} Maximum consensus'};
 
 legend(labels, 'Location', 'NorthWest', 'FontSize', 8, ...
     'TextColor', 'black'); % Set the color of the text to black
@@ -149,7 +147,7 @@ function start_goal()
     % Add the goal circle
     scatter3(goal_coord(1), goal_coord(2), goal_coord(3), 100, ...
         'g', 'filled', 'MarkerFaceAlpha', 0.75);
-    text(goal_coord(1), goal_coord(2), goal_coord(3)-0.3, 'goal');
+    text(goal_coord(1), goal_coord(2), goal_coord(3)-0.7, 'goal');
 
 end
 
