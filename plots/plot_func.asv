@@ -1,7 +1,7 @@
 %% Function to visualize hexaroter trajectories in 3D
 
-% Initialize and load data
 clc; clear; close all;
+
 states = load("matfile.mat");
 
 % Create matrix with RGB values for each color
@@ -10,8 +10,9 @@ colorMatrix = ["blue"; "magenta"; "cyan"];
 % Define a cell array of line types
 lineTypes = {'o-', 'o-', 'o-'};
 
-% Loop over trajectory data
+% Loop over trajectories
 figure(1);
+fig_j = [];
 for jj = 1:numel(states.states)
 
     % Extract trajectory
@@ -22,8 +23,10 @@ for jj = 1:numel(states.states)
 
     % Specify linewidth
     lineWidth = 2;
+    if jj == 3
+        lineWidth = 2;
+    end
 
-    % Plot trajectories
     segmentColor = colorMatrix(jj,:);
     current_figure = plot3(xyz_trajectory(1,:), xyz_trajectory(2,:), ...
         xyz_trajectory(3,:), lineTypes{jj}, 'LineWidth', lineWidth, ...
