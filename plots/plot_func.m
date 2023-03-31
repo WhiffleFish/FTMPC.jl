@@ -61,9 +61,8 @@ hold off
 labels = {'\color{blue} Non-Robust', ...
           '\color{magenta} Unitary Consensus', ...
           '\color{cyan} Maximum Consensus'};
-
 legend(labels, 'Location', 'NorthWest', 'FontSize', 8, ...
-    'TextColor', 'black'); % Set the color of the text to black
+    'TextColor', 'black');
 
 % Save figure (pdf)
 print('trajectory.pdf', '-dpdf', '-r300');
@@ -86,16 +85,17 @@ function create_patchYZ(loc)
     z_range = [-6, 0];
     
     % Define the vertices of the patch
-    vertices = [loc, y_range(1), z_range(2); % bottom left corner
-                loc, y_range(2), z_range(2); % top left corner
-                loc, y_range(2), z_range(1); % top right corner
+    vertices = [loc, y_range(1), z_range(2);  % bottom left corner
+                loc, y_range(2), z_range(2);  % top left corner
+                loc, y_range(2), z_range(1);  % top right corner
                 loc, y_range(1), z_range(1)]; % bottom right corner
     
     % Define the faces of the patch
     faces = [1, 2, 3, 4];
     
     % Create the patch object and plot it
-    patch('Vertices', vertices, 'Faces', faces, 'FaceColor', 'blue', 'FaceAlpha', 0.2);
+    patch('Vertices', vertices, 'Faces', faces, ...
+        'FaceColor', 'blue', 'FaceAlpha', 0.2);
 
 end
 
@@ -106,16 +106,17 @@ function create_patchXZ(loc)
     z_range = [-6, 0];
     
     % Define the vertices of the patch
-    vertices = [x_range(1), loc, z_range(2); % bottom left corner
-                x_range(2), loc, z_range(2); % bottom right corner
-                x_range(2), loc, z_range(1); % top right corner
+    vertices = [x_range(1), loc, z_range(2);  % bottom left corner
+                x_range(2), loc, z_range(2);  % bottom right corner
+                x_range(2), loc, z_range(1);  % top right corner
                 x_range(1), loc, z_range(1)]; % top left corner
     
     % Define the faces of the patch
     faces = [1, 2, 3, 4];
     
     % Create the patch object and plot it
-    patch('Vertices', vertices, 'Faces', faces, 'FaceColor', 'blue', 'FaceAlpha', 0.2);
+    patch('Vertices', vertices, 'Faces', faces,...
+        'FaceColor', 'blue', 'FaceAlpha', 0.2);
 
 end
 
@@ -147,12 +148,10 @@ function start_goal()
         'g', 'filled', 'MarkerFaceAlpha', 0.75);
     text(start_coord(1), start_coord(2)-0.15, start_coord(3), 'start');
 
-    % Add the goal circle
-%     scatter3(goal_coord(1), goal_coord(2), goal_coord(3), 100, ...
-%         'g', 'filled', 'MarkerFaceAlpha', 0.75);
-%     plot3([0.3 0.3], [0.3 0.3], [-5 -5.1], 'r', 'LineWidth', 2);
-%     plot3([0.3 0.3], [0.3 0.3], [-4.9 -5.0], 'r', 'LineWidth', 2);
+    % Add the goal cross
     text(goal_coord(1), goal_coord(2), goal_coord(3)-0.7, 'goal');
+    plot3(goal_coord(1), goal_coord(2), goal_coord(3), ...
+        'rx', 'LineWidth', 40);
 
 end
 
