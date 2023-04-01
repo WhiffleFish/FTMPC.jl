@@ -24,15 +24,15 @@ for jj = 1:numel(states.states)
     lineWidth = 2;
 
     % Plot trajectories
+    hold on
     segmentColor = colorMatrix(jj,:);
-    current_figure = plot3(xyz_trajectory(1,:), xyz_trajectory(2,:), ...
-        xyz_trajectory(3,:), lineTypes{jj}, 'LineWidth', lineWidth, ...
+    current_figure = plot3(xyz_trajectory(1,:), xyz_trajectory(2,:), xyz_trajectory(3,:), lineTypes{jj}, 'LineWidth', lineWidth, ...
         'Color', segmentColor);
 
+
     % Type scatter
-    scatter_plot = true;
+    scatter_plot = false;
     if scatter_plot == true
-        hold on
         scatter3(xyz_trajectory(1,:), xyz_trajectory(2,:), ...
             xyz_trajectory(3,:), 300, segmentColor, 'filled', ...
             'MarkerFaceAlpha', 0.5, 'HandleVisibility', 'off')
@@ -43,8 +43,8 @@ end
 % Create patches
 create_patchYZ(1)
 create_patchYZ(-1)
-create_patchXZ(-1)
 create_patchXZ(1)
+create_patchXZ(-1)
 create_patchXY(-6)
 start_goal()
 
@@ -65,8 +65,9 @@ legend(labels, 'Location', 'NorthWest', 'FontSize', 8, ...
     'TextColor', 'black');
 
 % Save figure (pdf)
-print('trajectory.pdf', '-dpdf', '-r300');
-
+% print('trajectory.pdf', '-dpdf', '-r300');
+% print(gcf,'3dtrajectory.png','-dpng','-r300')
+% print(gcf,'topview.png','-dpng','-r300')
 
 %% Functions
 function xyz = extract_xyz(dynamics_trajectory)
@@ -146,12 +147,15 @@ function start_goal()
     % Add the start circle
     scatter3(start_coord(1), start_coord(2), start_coord(3), 100, ...
         'g', 'filled', 'MarkerFaceAlpha', 0.75);
-    text(start_coord(1), start_coord(2)-0.15, start_coord(3), 'start');
+    text(start_coord(1), start_coord(2)-0.1, start_coord(3), 'start');
+%     text(start_coord(1)-0.5, start_coord(2)-0.1, start_coord(3)+0.95, 'start');
+
 
     % Add the goal cross
-    text(goal_coord(1), goal_coord(2), goal_coord(3)-0.7, 'goal');
-    plot3(goal_coord(1), goal_coord(2), goal_coord(3), ...
-        'rx', 'LineWidth', 40);
+    scatter3(goal_coord(1), goal_coord(2), goal_coord(3), 100, ...
+        'r', 'filled', 'MarkerFaceAlpha', 0.75);
+    text(goal_coord(1)+0.07, goal_coord(2) + 0.07, goal_coord(3), 'goal');
+%     text(goal_coord(1)-0.2, goal_coord(2), goal_coord(3)-0.7, 'goal');
 
 end
 
