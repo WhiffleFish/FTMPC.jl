@@ -58,8 +58,8 @@ create_patchXY(-6)
 % Labels
 set(groot,'DefaultTextFontName','Times New Roman');
 xlabel('x [m]','FontName','Times New Roman', 'FontSize', 12)
-ylabel('y [m]','FontName','Times New Roman', 'FontSize', 12)
-zlabel('z [m]','FontName','Times New Roman', 'FontSize', 12)
+ylabel('y [m]','FontName','Times New Roman', 'FontSize', 10)
+zlabel('z [m]','FontName','Times New Roman', 'FontSize', 10)
 xlim([-1.5, 1.5])
 ylim([-1.5, 1.5])
 grid on
@@ -67,7 +67,7 @@ hold off
 
 % Legend
 labels = {'\color{black} Non-Robust', ...
-          '\color{black} Unitary-Consensus', ...
+          '\color{black} Unitary-consensus', ...
           '\color{black} FGMPC'};
 legend(labels, 'Location', 'NorthWest', 'FontSize', 10, 'FontName', 'cmr12',...
     'TextColor', 'black');
