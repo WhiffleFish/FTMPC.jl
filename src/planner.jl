@@ -1,4 +1,4 @@
-struct FTMPCPlanner{F<:BarrierJuMPFormulator}
+mutable struct FTMPCPlanner{F<:BarrierJuMPFormulator}
     model::JuMP.Model
     f::F
     consensus_horizon::Int
@@ -105,13 +105,13 @@ function action_info(p::ConsensusSearchPlanner, x::AbstractVector)
     else
         (m,u,info) = res
         @assert !any(isnan, u)
-        return u, info
+        return u, info, t
     end
 end
 
 action(p::ConsensusSearchPlanner, x::AbstractVector) = first(action_info(p, x))
 
-function modify_objective_weights(p::ConsensusSearchPlanner, ws)
+function modify_objective_weights(p::Union{ConsensusSearchPlanner, FTMPCPlanner}, ws)
     model = modified_objective_model(p.f, ws)
     p.model = model
     return p

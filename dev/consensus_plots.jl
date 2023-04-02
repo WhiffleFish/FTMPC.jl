@@ -2,7 +2,6 @@ using BarrierFTMPC
 const MPC = BarrierFTMPC
 using JuMP
 using OSQP
-using COSMO
 using LinearAlgebra
 using Plots
 default(grid=false, framestyle=:box, fontfamily="Computer Modern", label="")
@@ -49,6 +48,21 @@ consensus_planner = MPC.ConsensusSearchPlanner(model, f)
 consensus_sim = Simulator(MPC.HexIMM(;Δt), consensus_planner, x0=x0, T=100, failure=MPC.FixedFailure(20,3;instant_update=true))
 consensus_hist = simulate(consensus_sim)
 plot(consensus_hist)
+
+using LaTeXStrings
+p = plot(
+    consensus_hist.t, consensus_hist.consensus, 
+    ylabel=L"h^*", xlabel="Time (s)", 
+    lw=2, title="Consensus Horizon History",
+    xlims=(0,5),
+    grid=true,
+    yticks = 0:10
+)
+savefig(p, "consensus_horizon_history.pdf")
+
+using FileIO
+using JLD2
+save("hist.jld2", Dict("hist"=>consensus_hist))
 
 ##
 plot(consensus_hist.t, pos_states(consensus_hist.x)')
@@ -212,4 +226,59 @@ for (i,p) ∈ enumerate(_plots)
 end
 
 p = plot(_plots...)
-savefig(p, "optimizer_trajectories")
+savefig(p, "optimizer_trajectories.pdf")
+
+##
+kwargs = (
+    ylims = (-6.0,0.5),
+    lw = 2,
+    grid = true,
+    titlefontsize = 10,
+    xguidefontsize = 10,
+    yguidefontsize = 10,
+)
+
+Ts = 0:Δt:Δt*(consensus_sim.T-1)
+prefail_idx = 5
+prefail_time = Ts[prefail_idx]
+prefail_mode = 1
+fail_idx = 21
+fail_time = Ts[fail_idx]
+postfail_idx = 51
+postfail_time = Ts[postfail_idx]
+postfail_mode = 3
+
+process_info(consensus_hist.info[postfail_idx][prefail_mode])
+process_info(info) = flip_z(only(info.X))[3,:]
+p1 = plot(
+    process_info(consensus_hist.info[prefail_idx][prefail_mode]);
+    kwargs..., x_formatter = _->"", ylabel = "Nominal Mode", title = "Pre-failure (t=$prefail_time s)",
+    label = "z"
+)
+p2 = plot(
+    process_info(consensus_hist.info[fail_idx][prefail_mode]);
+    kwargs..., x_formatter = _->"", y_formatter = _->"", title = "Failure (t=$fail_time s)"
+)
+p3 = plot(
+    process_info(consensus_hist.info[postfail_idx][prefail_mode]);
+    kwargs..., x_formatter = _->"", y_formatter = _->"", title = "Post-failure  (t=$postfail_time s)"
+)
+p4 = plot(
+    process_info(consensus_hist.info[prefail_idx][postfail_mode]);
+    kwargs..., ylabel = "Mode 2", xlabel = "Planning Horizon"
+)
+p5 = plot(
+    process_info(consensus_hist.info[fail_idx][postfail_mode]);
+    kwargs..., y_formatter = _->"", xlabel = "Planning Horizon"
+)
+p6 = plot(
+    process_info(consensus_hist.info[postfail_idx][postfail_mode]);
+    kwargs..., y_formatter = _->"", xlabel = "Planning Horizon"
+)
+_plots = (p1,p2,p3,p4,p5,p6)
+for (i,p) ∈ enumerate(_plots)
+    hline!(p, [-x_ref[3]], c=:firebrick, ls=:dash, label=isone(i) ? "ref" : "", lw=2)
+end
+
+p = plot(_plots...)
+savefig(p, "optimizer_trajectories.pdf")
