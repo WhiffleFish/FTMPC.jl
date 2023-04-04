@@ -68,7 +68,7 @@ f = BarrierJuMPFormulator(
 
 model = JuMPModel(f, x0)
 
-simT = 80
+simT = 130
 failtime = floor(simT/4)
 delaytime = 3
 imm = MPC.HexIMM(Δt=Δt)
@@ -120,7 +120,9 @@ nonrobplt = plot(nonrobusthist, Δt, side, ground)
 crashind = findfirst(x -> x>1, nonrobusthist.x[1,:])
 hists = [nonrobusthist, unithist, nominalhist]
 totalplt = plot(hists, Δt, side, ground, x_ref, Int(failtime), Int(delaytime))
-savefig(totalplt, joinpath(@__DIR__, "../figs/comparelowtol.svg"))
+savefig(totalplt, joinpath(@__DIR__, "../figs/twocomparenew.pdf"))
+#savefig(totalplt, joinpath(@__DIR__, "../figs/legend.pdf"))
+
 
 display(totalplt)
 #display(firstplt)

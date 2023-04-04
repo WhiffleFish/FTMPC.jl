@@ -137,16 +137,17 @@ end
     recend = tvec[end][end] + 1
     barrcolor = "lightgray"
 
-    n=4
-    colors = [palette(:default)[1:3]' :firebrick]
     #labels = ["\n  Non-Robust\n" "\n  Unitary-Consensus\n" "\n  Max-Consensus\n" "\n  Reference\n"]
-    labels = ["Non-Robust" "Unitary-Consensus" "Max-Consensus" "Rotor Fail" "IMM Delay" "Reference" "" ""]
+    #labels = ["Non-Robust" "Unitary-Consensus             " "Feasibility-Guided MPC" "" "" "" "" ""]#
+    labels = ["" "" "" "Rotor Fail" "IMM Delay" "Reference" "" ""]
     layout := (3,1) #@layout [grid(3, 1) a{0.25w}]#(3,1)
-
     xlims --> (Δt/2,tsimmax*Δt+0.01)
-    size --> (600,600)
+    size --> (700,600)
     linewidth --> 2
-    legend --> :outerright
+    xguidefontsize --> 15
+    yguidefontsize --> 15
+    #legend --> false#:outertop
+    #legend_columns --> -1 =#
     fontfamily --> "Computer Modern"
     label --> labels
 
@@ -175,14 +176,14 @@ end
     @series begin # fail
         subplot := 1
         seriestype:= :vline
-        linestyle --> :dash
+        linestyle --> :dashdot
         color --> :black 
         [tvec[1][failtime]]
     end
     @series begin # delay
         subplot := 1
         seriestype:= :vline
-        linestyle --> :dash
+        linestyle --> :dashdotdot
         color --> :blue
         [tvec[1][failtime + delaytime]]
     end
@@ -206,6 +207,10 @@ end
         ylabel --> "x(m)"
         ylims --> (-side-1,side+1)
         #legend --> false
+        #legend --> :outertop
+        legendfontsize --> 10
+        #fg_legend --> :transparent
+        #legend_columns --> -1
         rectangle(recend,2,0,side)
     end
 
@@ -220,14 +225,14 @@ end
     @series begin # fail
         subplot := 2
         seriestype:= :vline
-        linestyle --> :dash
+        linestyle --> :dashdot
         color --> :black 
         [tvec[2][failtime]]
     end
     @series begin # delay
         subplot := 2
         seriestype:= :vline
-        linestyle --> :dash
+        linestyle --> :dashdotdot
         color --> :blue
         [tvec[2][failtime + delaytime]]
     end
@@ -250,7 +255,7 @@ end
         color --> barrcolor
         ylabel --> "y(m)"
         ylims --> (-side-1,side+1)
-        #legend --> false
+        legend --> false
         rectangle(recend,2,0,side)
     end
 
@@ -259,14 +264,14 @@ end
         @series begin
             subplot := 3
             ylims --> [-ground,ground] + [-1,1]
-            xlabel --> "time(s)"
+            xlabel --> "Time(s)"
             tvec[i], z[i]
         end
     end
     @series begin # fail
         subplot := 3
         seriestype:= :vline
-        linestyle --> :dash
+        linestyle --> :dashdot
         color --> :black 
         [tvec[3][failtime]]
     end
@@ -294,7 +299,7 @@ end
         subplot := 3
         opacity --> .5
         color --> barrcolor
-        xlabel --> "time(s)"
+        xlabel --> "Time(s)"
         ylabel --> "z(m)"
         ylims --> (-ground-2,ground+2)
         legend --> false

@@ -135,7 +135,7 @@ function action(p::ConsensusSearchPlanner, x::AbstractVector)
         return nothing
     else
         (_,u) = res
-        @assert !any(isnan, u)
+        #@assert !any(isnan, u)
         return u,t
     end
 end

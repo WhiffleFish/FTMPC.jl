@@ -96,7 +96,7 @@ function simulate(sim::ModeChangeSimulator{<:ConsensusPlanner}, failmode, failti
     for t ∈ 1:T
         push!(x_hist, copy(x))
         u, feastime = action(planner, x)
-        if any(isnan, u)
+        if any(isnan, u) || isnothing(u)
             @warn "Failed to find action"
             break
         end

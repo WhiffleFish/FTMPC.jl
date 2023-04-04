@@ -9,6 +9,8 @@ using Plots
 default(grid=false, framestyle=:box, fontfamily="Computer Modern")
 theme(:wong)
 
+using JLD2, FileIO
+
 ground = 6
 side = 1
 γside = 1e-0
@@ -25,10 +27,10 @@ constraints = MPC.ElevatorShaft(h=ground, γg = γground, γs = γside)
     LinearConstraint(-basis(12, 1)*1, side, γside)
 ]
  =#
-num_modes = 2
+num_modes = 7
 failmode = 1
-failures = [0,failmode]
-#failures = 0:num_modes-1
+#failures = [0,failmode]
+failures = 0:num_modes-1
 # failures = [0,1]
 T = 10
 Δt = 0.05
@@ -42,8 +44,8 @@ x_ref[1] = -0.4
 x_ref[2] = 0.4
 x_ref[3] = 5
 
-#ws = [1,0,0,0,0,0,0]
-ws = [1,0]
+ws = [1,0,0,0,0,0,0]
+#ws = [1,0]
 
 
 Q_i = Matrix{Float64}(I(12))
@@ -58,8 +60,8 @@ f = BarrierJuMPFormulator(
     x_ref,
     P = Q,
     Q = R,
-    eps_abs = 1e-4,
-    eps_rel = 1e-4,
+    #eps_abs = 1e-4,
+    #eps_rel = 1e-4,
     constraints,
 
     verbose = false,
@@ -68,7 +70,7 @@ f = BarrierJuMPFormulator(
 
 model = JuMPModel(f, x0)
 
-simT = 80
+simT = 100
 failtime = floor(simT/4)
 delaytime = 3
 imm = MPC.HexIMM(Δt=Δt)
@@ -78,9 +80,9 @@ sim = Simulator(imm, planner, x0=x0, T=simT)
 unithist,partialtime = simulate(sim, failmode, failtime, delaytime)
 
 
-nominalplanner = MPC.ConsensusSearchPlanner(model, f)
-nominalsim = Simulator(imm, nominalplanner, x0=x0, T=simT)
-nominalhist,partialtime = simulate(nominalsim, failmode, failtime, delaytime)
+#nominalplanner = MPC.ConsensusSearchPlanner(model, f)
+#nominalsim = Simulator(imm, nominalplanner, x0=x0, T=simT)
+#nominalhist,partialtime = simulate(nominalsim, failmode, failtime, delaytime)
 
 
 
@@ -117,10 +119,12 @@ firstplt = plot(unithist, Δt, side, ground)
 #secondplt = plot(nominalhist, Δt, side, ground)
 nonrobplt = plot(nonrobusthist, Δt, side, ground)
 
+@load "hist.jld2" hist
+nominalhist = hist
 crashind = findfirst(x -> x>1, nonrobusthist.x[1,:])
 hists = [nonrobusthist, unithist, nominalhist]
 totalplt = plot(hists, Δt, side, ground, x_ref, Int(failtime), Int(delaytime))
-savefig(totalplt, joinpath(@__DIR__, "../figs/comparelowtol.png"))
+savefig(totalplt, joinpath(@__DIR__, "../figs/compare7new.pdf"))
 display(totalplt)
 #display(firstplt)
 #display(secondplt)

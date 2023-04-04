@@ -26,8 +26,9 @@ function HexIMM(;Δt=0.1, w=basis(7,1), failure_prob=0.05)
         push!(u_noms, sys.u)
     end
     # FIXME: horrible obs dist
-    default_cov = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 1.,1.,1.,100, 100, 100]
-    obs_dist = (x) -> MvNormal(x, Diagonal(default_cov))
+    default_cov = Matrix(0.01I, 12, 12)
+    #default_cov = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 1.,1.,1.,100, 100, 100]Diagonal(default_cov
+    obs_dist = (x) -> MvNormal(x, default_cov)
     return IMM(modes, u_noms, hex_mode_transition(failure_prob), w, obs_dist)
 end
 
