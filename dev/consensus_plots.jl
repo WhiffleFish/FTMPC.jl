@@ -250,35 +250,104 @@ postfail_mode = 3
 
 process_info(consensus_hist.info[postfail_idx][prefail_mode])
 process_info(info) = flip_z(only(info.X))[3,:]
-p1 = plot(
-    process_info(consensus_hist.info[prefail_idx][prefail_mode]);
-    kwargs..., x_formatter = _->"", ylabel = "Nominal Mode", title = "Pre-failure (t=$prefail_time s)",
-    label = "z"
-)
-p2 = plot(
-    process_info(consensus_hist.info[fail_idx][prefail_mode]);
-    kwargs..., x_formatter = _->"", y_formatter = _->"", title = "Failure (t=$fail_time s)"
-)
-p3 = plot(
-    process_info(consensus_hist.info[postfail_idx][prefail_mode]);
-    kwargs..., x_formatter = _->"", y_formatter = _->"", title = "Post-failure  (t=$postfail_time s)"
-)
-p4 = plot(
-    process_info(consensus_hist.info[prefail_idx][postfail_mode]);
-    kwargs..., ylabel = "Mode 2", xlabel = "Planning Horizon"
-)
-p5 = plot(
-    process_info(consensus_hist.info[fail_idx][postfail_mode]);
-    kwargs..., y_formatter = _->"", xlabel = "Planning Horizon"
-)
-p6 = plot(
-    process_info(consensus_hist.info[postfail_idx][postfail_mode]);
-    kwargs..., y_formatter = _->"", xlabel = "Planning Horizon"
-)
-_plots = (p1,p2,p3,p4,p5,p6)
-for (i,p) ∈ enumerate(_plots)
-    hline!(p, [-x_ref[3]], c=:firebrick, ls=:dash, label=isone(i) ? "ref" : "", lw=2)
+begin
+    p1 = plot(0:T-1,
+        process_info(consensus_hist.info[prefail_idx][prefail_mode]);
+        kwargs..., x_formatter = _->"", ylabel = "Nominal Mode", title = "Pre-failure (t=$prefail_time s)",
+        label = "z", legend=:left
+    )
+    p2 = plot(0:T-1,
+        process_info(consensus_hist.info[fail_idx][prefail_mode]);
+        kwargs..., x_formatter = _->"", y_formatter = _->"", title = "Failure (t=$fail_time s)"
+    )
+    p3 = plot(0:T-1,
+        process_info(consensus_hist.info[postfail_idx][prefail_mode]);
+        kwargs..., x_formatter = _->"", y_formatter = _->"", title = "Post-failure  (t=$postfail_time s)"
+    )
+    p4 = plot(0:T-1,
+        process_info(consensus_hist.info[prefail_idx][postfail_mode]);
+        kwargs..., ylabel = "Mode 2", xlabel = "Planning Horizon"
+    )
+    p5 = plot(0:T-1,
+        process_info(consensus_hist.info[fail_idx][postfail_mode]);
+        kwargs..., y_formatter = _->"", xlabel = "Planning Horizon"
+    )
+    p6 = plot(0:T-1,
+        process_info(consensus_hist.info[postfail_idx][postfail_mode]);
+        kwargs..., y_formatter = _->"", xlabel = "Planning Horizon"
+    )
+    _plots = (p1,p2,p3,p4,p5,p6)
+    for (i,p) ∈ enumerate(_plots)
+        hline!(p, [-x_ref[3]], c=:firebrick, ls=:dash, label=isone(i) ? "ref" : "", lw=2)
+    end
+
+    vline!(p1,[consensus_hist.consensus[prefail_idx]], label=L"h^*", lw=2)
+    vline!(p4,[consensus_hist.consensus[prefail_idx]], lw=2)
+
+    vline!(p2,[consensus_hist.consensus[fail_idx]], lw=2)
+    vline!(p5,[consensus_hist.consensus[fail_idx]], lw=2)
+
+    vline!(p3,[consensus_hist.consensus[postfail_idx]], lw=2)
+    vline!(p6,[consensus_hist.consensus[postfail_idx]], lw=2)
+
+    p = plot(_plots...)
 end
 
-p = plot(_plots...)
 savefig(p, "optimizer_trajectories.pdf")
+
+##
+kwargs = (
+    ylims = (-6.0,0.5),
+    lw = 2,
+    grid = true,
+    titlefontsize = 10,
+    xguidefontsize = 10,
+    yguidefontsize = 10,
+)
+
+Ts = 0:Δt:Δt*(consensus_sim.T-1)
+prefail_idx = 5
+prefail_time = Ts[prefail_idx]
+prefail_mode = 1
+fail_idx = 21
+fail_time = Ts[fail_idx]
+postfail_idx = 51
+postfail_time = Ts[postfail_idx]
+postfail_mode = 3
+
+process_info(consensus_hist.info[postfail_idx][prefail_mode])
+process_info(info) = flip_z(only(info.X))[3,:]
+begin
+    p1 = plot(0:T-1,
+        process_info(consensus_hist.info[prefail_idx][prefail_mode]);
+        kwargs..., x_formatter = _->"", ylabel = "Nominal Mode", title = "Pre-diagnosed failure (t=$prefail_time s)",
+        label = "z", legend=:left
+    )
+    p2 = plot(0:T-1,
+        process_info(consensus_hist.info[postfail_idx][prefail_mode]);
+        kwargs..., x_formatter = _->"", y_formatter = _->"", title = "Post-diagnosed failure  (t=$postfail_time s)"
+    )
+    p3 = plot(0:T-1,
+        process_info(consensus_hist.info[prefail_idx][postfail_mode]);
+        kwargs..., ylabel = "Mode 2", xlabel = "Planning Horizon"
+    )
+    p4 = plot(0:T-1,
+        process_info(consensus_hist.info[postfail_idx][postfail_mode]);
+        kwargs..., y_formatter = _->"", xlabel = "Planning Horizon"
+    )
+    _plots = (p1,p2,p3,p4)
+    for (i,p) ∈ enumerate(_plots)
+        hline!(p, [-x_ref[3]], c=:firebrick, ls=:dash, label=isone(i) ? "ref" : "", lw=2)
+    end
+
+    vline!(p1,[consensus_hist.consensus[prefail_idx]], label=L"h^*", lw=2)
+    vline!(p3,[consensus_hist.consensus[prefail_idx]], lw=2)
+
+    vline!(p2,[consensus_hist.consensus[postfail_idx]], lw=2)
+    vline!(p4,[consensus_hist.consensus[postfail_idx]], lw=2)
+
+    p = plot(_plots...)
+    display(p)
+end
+
+savefig(p, "optimizer_trajectories-4panel.pdf")
