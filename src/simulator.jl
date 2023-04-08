@@ -92,6 +92,7 @@ struct ModeChangeSimHist
     mode::Vector{Int}
     w::Matrix{Float64}
     info::Vector{HexOSQPResults{FloatRange}}
+    consensus::Vector{Int}
 end
 
 function Simulator(imm::IMM, planner; x0=zeros(12), failure=NoFailure(), T=50, progress=true)
@@ -111,14 +112,19 @@ function simulate(sim::ModeChangeSimulator)
     mode_hist = Int[]
     imm_state_hist = Vector{Float64}[]
     info = HexOSQPResults{StepRangeLen{Float64, Base.TwicePrecision{Float64}, Base.TwicePrecision{Float64}, Int64}}[]
+    consensus_hist = Int[]
 
     prog = Progress(T; enabled=sim.progress)
     for t ∈ 1:T
         # FIXME: Set objective weights in sim loop without changing sparsity pattern
         # modify_objective_weights(planner, imm.weights) 
         push!(x_hist, copy(x))
-        u,_info = action_info(planner, x)
-        isnothing(u) && break
+        u,_info,h_star = action_info(planner, x)
+        if isnothing(u)
+            @show x
+            break
+        end
+        push!(consensus_hist, h_star)
         push!(u_hist, copy(u))
         push!(mode_hist, mode_idx)
         push!(imm_state_hist, copy(imm.weights))
@@ -148,7 +154,8 @@ function simulate(sim::ModeChangeSimulator)
         collect(0.0:Δt:(T-1)*Δt),
         mode_hist,
         reduce(hcat, imm_state_hist),
-        info
+        info,
+        consensus_hist
     )
 end
 

@@ -5,6 +5,7 @@ using OSQP
 using COSMO
 using LinearAlgebra
 using Plots
+using ControlSystemsBase
 default(grid=false, framestyle=:box, fontfamily="Computer Modern", label="")
 
 failures = [0]
@@ -55,7 +56,7 @@ f = BarrierJuMPFormulator(
     x_ref,
     # Q=(I(6)*1e-1,1),
     # R=(I(6)*1e-1,1),
-    Q=I(6)*1e-1,
+    Q=I(12)*1e-1,
     R=I(6)*1e-1,
     constraints,
     eps_prim_inf = 1e-3,
@@ -65,9 +66,19 @@ f = BarrierJuMPFormulator(
     max_iter= 50_000
 )
 model = JuMPModel(f, x0)
-# MPC.set_consensus_horizon(model, f, 1)
-planner = FTMPCPlanner(model, f)
-sim = Simulator(LinearHexModel(0), planner, x0=x0, T=200)
+dsys = LinearHexModel(0)
+
+planner = MPC.FTMPCPlanner(model, f, 1)
+MPC.action(planner, x0)
+res = MPC.HexOSQPResults(f, model)
+
+i = 2
+plot(
+    plot(pos_states(res.X[i])'),
+    plot(res.U[i]')
+)
+
+sim = Simulator(LinearHexModel(0), planner, x0=x0, T=100)
 hist = simulate(sim)
 
 plot(hist, lw=2)

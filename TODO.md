@@ -13,6 +13,7 @@
     - Use SHIFT of last solution rather than last solution directly
   - [x] Variable Consensus Horizon
 - [x] IMM integration
-- [ ] Feasibility LP (No QP)
+- [ ] Feasibility LP (No QP) - doesn't actually seem to be faster
 - [ ] Change `LinearHexModel` to discrete time (we're always converting anyways)
-- [ ] Early sim stopping for barrier violation / infeasible control
+- [x] Early sim stopping for barrier violation / infeasible control
+- [x] Fixed failure time - don't want failure in simulation to be up to random chance

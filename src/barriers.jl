@@ -313,3 +313,6 @@ function process_P(ms::Vector{<:AbstractMatrix}, nm, T)
         error("invalid size")
     end
 end
+
+function consensus_from_hist()
+end
