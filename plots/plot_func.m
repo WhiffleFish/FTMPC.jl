@@ -8,10 +8,11 @@ states = load("matfile.mat");
 colorMatrix = ["blue"; "magenta"; "cyan"];
 
 % Define a cell array of line types
-lineTypes = {'o-', 'o-', 'o-'};
+lineTypes = {'-', '-', '-'};
 
 % Loop over trajectory data
 figure(1);
+two_dim = true;
 for jj = 1:numel(states.states)
 
     % Extract trajectory
@@ -23,50 +24,61 @@ for jj = 1:numel(states.states)
     % Specify linewidth
     lineWidth = 2;
 
+    if two_dim == true
+        hold on
+    end
+    
     % Plot trajectories
     segmentColor = colorMatrix(jj,:);
-    current_figure = plot3(xyz_trajectory(1,:), xyz_trajectory(2,:), ...
-        xyz_trajectory(3,:), lineTypes{jj}, 'LineWidth', lineWidth, ...
+    current_figure = plot3(xyz_trajectory(1,:), xyz_trajectory(2,:), xyz_trajectory(3,:), lineTypes{jj}, 'LineWidth', lineWidth, ...
         'Color', segmentColor);
+
+    if two_dim == false
+        hold on
+    end
 
     % Type scatter
     scatter_plot = true;
     if scatter_plot == true
-        hold on
         scatter3(xyz_trajectory(1,:), xyz_trajectory(2,:), ...
-            xyz_trajectory(3,:), 300, segmentColor, 'filled', ...
+            xyz_trajectory(3,:), 70, segmentColor, 'filled', ...
             'MarkerFaceAlpha', 0.5, 'HandleVisibility', 'off')
     end
 
 end
 
 % Create patches
+start_goal()
 create_patchYZ(1)
 create_patchYZ(-1)
-create_patchXZ(-1)
 create_patchXZ(1)
+create_patchXZ(-1)
 create_patchXY(-6)
-start_goal()
 
 % Labels
-xlabel('x [m]','FontName','Times New Roman')
-ylabel('y [m]','FontName','Times New Roman')
-zlabel('z [m]','FontName','Times New Roman')
+set(groot,'DefaultTextFontName','Times New Roman');
+xlabel('x [m]','FontName','Times New Roman', 'FontSize', 12)
+ylabel('y [m]','FontName','Times New Roman', 'FontSize', 12)
+zlabel('z [m]','FontName','Times New Roman', 'FontSize', 12)
 xlim([-1.5, 1.5])
 ylim([-1.5, 1.5])
 grid on
 hold off
 
 % Legend
-labels = {'\color{blue} Non-Robust', ...
-          '\color{magenta} Unitary Consensus', ...
-          '\color{cyan} Maximum Consensus'};
-legend(labels, 'Location', 'NorthWest', 'FontSize', 8, ...
+labels = {'\color{black} Non-Robust', ...
+          '\color{black} Unitary-Consensus', ...
+          '\color{black} FGMPC'};
+legend(labels, 'Location', 'NorthWest', 'FontSize', 10, 'FontName', 'cmr12',...
     'TextColor', 'black');
 
 % Save figure (pdf)
-print('trajectory.pdf', '-dpdf', '-r300');
-
+% print('trajectory.pdf', '-dpdf', '-r300');
+if two_dim == true
+    print(gcf,'topview.png','-dpng','-r300')
+elseif two_dim == false
+    print(gcf,'3dtrajectory.png','-dpng','-r300')
+end
 
 %% Functions
 function xyz = extract_xyz(dynamics_trajectory)
@@ -94,8 +106,11 @@ function create_patchYZ(loc)
     faces = [1, 2, 3, 4];
     
     % Create the patch object and plot it
+%     patch('Vertices', vertices, 'Faces', faces, ...
+%         'FaceColor', 'blue', 'FaceAlpha', 0.2);
+
     patch('Vertices', vertices, 'Faces', faces, ...
-        'FaceColor', 'blue', 'FaceAlpha', 0.2);
+        'FaceColor', [0.5 0.5 0.5], 'FaceAlpha', 0.2);
 
 end
 
@@ -116,7 +131,7 @@ function create_patchXZ(loc)
     
     % Create the patch object and plot it
     patch('Vertices', vertices, 'Faces', faces,...
-        'FaceColor', 'blue', 'FaceAlpha', 0.2);
+        'FaceColor',  [0.5 0.5 0.5], 'FaceAlpha', 0.2);
 
 end
 
@@ -134,24 +149,28 @@ function create_patchXY(loc)
     rectPatchColor = [0.5 0.5 0.5];
     
     % Plot rectangular patch using patch function
-    patch(x, y, z, rectPatchColor, 'FaceColor', 'blue', 'FaceAlpha', 0.2);
+    patch(x, y, z, rectPatchColor, 'FaceColor',  [0.5 0.5 0.5], ...
+        'FaceAlpha', 0.2);
 
 end
 
 function start_goal()
     % Define the coordinates of your circles
     start_coord = [0, 0, 0];
-    goal_coord = [0.3, 0.3, -5];
+    goal_coord = [-0.4, 0.4, -5];
 
     % Add the start circle
-    scatter3(start_coord(1), start_coord(2), start_coord(3), 100, ...
-        'g', 'filled', 'MarkerFaceAlpha', 0.75);
-    text(start_coord(1), start_coord(2)-0.15, start_coord(3), 'start');
+    a = scatter3(start_coord(1), start_coord(2), start_coord(3), 200, ...
+        'k', 'filled', 'MarkerFaceAlpha', 0.75);
+%     text(start_coord(1), start_coord(2)+0.7, start_coord(3)-0.2, 'start');
+    text(start_coord(1)-0.30, start_coord(2)-0.15, start_coord(3)+0.90, 'start');
 
     % Add the goal cross
-    text(goal_coord(1), goal_coord(2), goal_coord(3)-0.7, 'goal');
-    plot3(goal_coord(1), goal_coord(2), goal_coord(3), ...
-        'rx', 'LineWidth', 40);
+    b = scatter3(goal_coord(1), goal_coord(2), goal_coord(3), 200, ...
+        'r', 'filled', 'MarkerFaceAlpha', 1);
+    
+    text(goal_coord(1)-0.25, goal_coord(2) - 0.12, goal_coord(3)-0.20, 'goal');
+%     text(goal_coord(1)-0.2, goal_coord(2), goal_coord(3)-0.5, 'goal');
 
 end
 
