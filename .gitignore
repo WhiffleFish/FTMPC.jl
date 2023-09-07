@@ -1,2 +1,9 @@
 Manifest.toml
 .DS_Store
+*.png
+*.pdf
+*.svg
+*.tex
+*.gif
+*.mat
+*.jld2
