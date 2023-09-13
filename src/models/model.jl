@@ -1,12 +1,4 @@
-abstract type Model end
-
-function statedim(::Model) end
-
-function controldim(::Model) end
-
-function measdim(::Model) end
-
-struct CTLinearModel{AT<:AbstractMatrix, BT<:AbstractMatrix, CT<:AbstractMatrix, DT<:AbstractMatrix} <: Model
+struct CTLinearModel{AT<:AbstractMatrix, BT<:AbstractMatrix, CT<:AbstractMatrix, DT<:AbstractMatrix}
     ss::StateSpace{Continuous, Float64}
     x::Vector{Float64}
     u::Vector{Float64}
@@ -17,7 +9,7 @@ statedim(model::CTLinearModel) = size(model.ss.A, 1)
 controldim(model::CTLinearModel) = size(model.ss.B, 2)
 measdim(model::CTLinearModel) = size(model.ss.C, 1)
 
-struct BatchDynamics{M1,M2} <: Model
+struct BatchDynamics{M1,M2}
     A::M1
     B::M2
     Δ_nom::Vector{Float64}
