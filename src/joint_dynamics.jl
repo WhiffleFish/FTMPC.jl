@@ -65,10 +65,10 @@ make_joint(vs::AbstractVector{<:AbstractVector}) = mortar(vs)
 make_joint(vs::AbstractVector{<:AbstractVector}, n) = make_joint(vs)
 
 default_c(B::AbstractVector{<:AbstractMatrix}, n) = default_c(first(B), n)
-default_c(B::AbstractMatrix, n) = I(size(B,1)*n)
+default_c(B::AbstractMatrix, n=1) = I(size(B,1)*n)
 
 default_d(B::AbstractVector{<:AbstractMatrix}, n) = default_d(first(B), n)
-default_d(B::AbstractMatrix, n) = zeros(size(B,1)*n, size(B,2))
+default_d(B::AbstractMatrix, n=1) = zeros(size(B,1)*n, size(B,2))
 
 default_d_joint(B::AbstractVector{<:AbstractMatrix}, n) = default_d(first(B), n)
 default_d_joint(B::AbstractMatrix, n) = zeros(size(B,1)*n, size(B,2))
@@ -85,51 +85,4 @@ each mode has its own control vector u
 """
 function independent_dynamics(n::Int, A, B, C=default_c(B,n), D=default_d_joint(B,n))
     return make_joint(A, n), make_indep_b(B, n), C, D
-end
-
-##
-
-struct HexBatchDynamics{M1<:AbstractMatrix, M2<:AbstractMatrix}
-    A::M1
-    B::M2
-    Δ_nom::Vector{Float64}
-    modes::Vector{Int}
-    T::Int
-    Δt::Float64
-    u_bounds::Tuple{Float64, Float64}
-end
-
-time_step(sys::HexBatchDynamics) = sys.Δt
-n_modes(sys::HexBatchDynamics) = length(sys.modes)
-horizon(sys::HexBatchDynamics) = sys.T
-#=
-Joint THEN batch
-=#
-function HexBatchDynamics(;T=10, Δt=0.1, failures=0:6, u_bounds=(-Inf,Inf))
-    n = length(failures)
-    As = Matrix{Float64}[]
-    Bs = Matrix{Float64}[]
-    u_noms = Vector{Float64}[]
-    for failure in failures
-        model = LinearHexModel(failure)
-        push!(u_noms, model.u)
-        dsys = c2d(model.ss, Δt)
-        push!(As, dsys.A)
-        push!(Bs, dsys.B)
-    end
-    A,B,_,_ = independent_dynamics(n, As, Bs)
-    Ā, B̄ = batch_dynamics(A,B,T)
-    u_nom_t = reduce(vcat, u_noms)
-    U_nom = repeat(u_nom_t, T-1)
-    Δ_nom = B̄*U_nom
-
-    return HexBatchDynamics(
-        sparse(Ā),
-        sparse(B̄),
-        convert(Vector{Float64}, Δ_nom), # probably shouldn't need to do this
-        convert(Vector{Int}, failures),
-        T,
-        Δt,
-        u_bounds
-    )
 end

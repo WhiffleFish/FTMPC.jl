@@ -11,17 +11,10 @@ using Random
 using Distributions: pdf, MvNormal
 using JuMP
 
-include("constants.jl")
-include("linear.jl")
-export LinearHexModel
-export flip_z, trans_states, pos_states
-
-include("failure_linearization.jl")
-export hover_control
+include(joinpath("models", "models.jl"))
 
 include("joint_dynamics.jl")
 export joint_dynamics, make_joint, batch_dynamics, unbatch_states
-export HexBatchDynamics
 
 include("barriers.jl")
 export BarrierJuMPFormulator, LinearConstraint, JuMPModel
