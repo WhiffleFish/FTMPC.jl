@@ -31,6 +31,15 @@ function hex_linear(failure=0)
     return (A,B,C,D)
 end
 
+function abs_linear(failure=0)
+    A = []
+    B = []
+    C = []
+    D = []
+
+    return (A,B,C,D)
+end
+
 """ Flip direction of z and dz of state vector s.t. +z points up"""
 function flip_z end
 
@@ -96,6 +105,34 @@ struct LinearHexModel
         hover_control(failure)
     )
 end
+
+struct LinearABSModel
+    "Linearized perturbation model"
+    ss::StateSpace{Continuous, Float64}
+
+    "Linearization state x̄ -> x = x̄ + δx"
+    x::Vector{Float64}
+
+    "Linearization control ū -> u = ū + δu"
+    u::Vector{Float64}
+
+    LinearHexModel(failure::Int=0) = new(
+        ss(abs_linear(failure)...),
+        zeros(6),
+        hover_control(failure)
+    )
+end
+
+function DynamicsModel(system::Symbol, failure::Int=0)
+    if system == :hex
+        return LinearHexModel(failure)
+    else
+        error("Unknown system: $system")
+    end
+    return LinearHexModel(failure)
+end
+
+
 
 function dstep(dsys::StateSpace{<:Discrete}, x, δu)
     (;A,B) = dsys
