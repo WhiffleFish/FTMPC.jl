@@ -119,7 +119,11 @@ function simulate(sim::ModeChangeSimulator)
         # FIXME: Set objective weights in sim loop without changing sparsity pattern
         # modify_objective_weights(planner, imm.weights) 
         push!(x_hist, copy(x))
-        u,_info,h_star = action_info(planner, x)
+        u,_info,h_star = if planner isa ConsensusSearchPlanner
+            action_info(planner, x)
+        elseif planner isa FTMPCPlanner
+            action_info(planner, x)..., 1
+        end
         if isnothing(u)
             @show x
             break
