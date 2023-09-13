@@ -1,1 +1,8 @@
 Manifest.toml
+*.png
+*.pdf
+*.svg
+*.tex
+*.gif
+*.mat
+*.jld2
