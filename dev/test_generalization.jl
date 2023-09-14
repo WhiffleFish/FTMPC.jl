@@ -38,11 +38,11 @@ model = JuMPModel(f, x0)
 unit_planner = MPC.FTMPCPlanner(model, f, 1)
 a, info = MPC.action_info(unit_planner, rand(12)*1e-2)
 
-unit_sim = Simulator(MPC.HexIMM(;Δt), unit_planner, x0=x0, T=100, failure=MPC.FixedFailure(10,3;instant_update=true))
+unit_sim = Simulator(unit_planner, x0=x0, T=100, failure=MPC.FixedFailure(10,3;instant_update=true))
 unit_hist = simulate(unit_sim)
 plot(unit_hist, lw=2)
 
 consensus_planner = MPC.ConsensusSearchPlanner(model, f)
-consensus_sim = Simulator(consensus_planner, x0=x0, T=10, failure=MPC.FixedFailure(5,3;instant_update=true))
+consensus_sim = Simulator(consensus_planner, x0=x0, T=50, failure=MPC.FixedFailure(5,3;instant_update=true))
 consensus_hist = simulate(consensus_sim)
 plot(consensus_hist)

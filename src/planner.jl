@@ -102,7 +102,7 @@ function action_info(p::ConsensusSearchPlanner, x::AbstractVector)
     res, t = binary_search_max(s, valid_consensus, T-1)
     if isnothing(res)
         @warn("No feasible action")
-        return nothing, nothing
+        return nothing, nothing, nothing
     else
         (m,u,info) = res
         @assert !any(isnan, u)

@@ -27,7 +27,7 @@ end
 
 Random.rand(rng::Random.AbstractRNG, ::NothingDist) = nothing
 
-function default_imm(planner::ConsensusSearchPlanner)
+function default_imm(planner::Union{ConsensusSearchPlanner, FTMPCPlanner})
     sys = planner.f.sys # BatchDynamics
     return IMM(sys.models, sys.u_noms)
 end
