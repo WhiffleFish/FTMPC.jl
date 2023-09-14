@@ -31,7 +31,7 @@ function action_info(p::FTMPCPlanner, x::AbstractVector)
         @warn("No feasible action")
         nothing, nothing
     else
-        u, HexOSQPResults(p.f, p.model)
+        u, OSQPResults(p.f, p.model)
     end
 end
 

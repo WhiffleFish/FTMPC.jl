@@ -134,13 +134,13 @@ function JuMPModel(f::BarrierJuMPFormulator, x0)
     return model
 end
 
-struct HexOSQPResults{T}
+struct OSQPResults{T}
     X::Vector{Matrix{Float64}}
     U::Vector{Matrix{Float64}}
     t::T
 end
 
-function HexOSQPResults(f::BarrierJuMPFormulator, model::JuMP.Model)
+function OSQPResults(f::BarrierJuMPFormulator, model::JuMP.Model)
     sys = f.sys
     Δt = sys.Δt
     nm, T = n_modes(sys), horizon(sys)
@@ -151,15 +151,15 @@ function HexOSQPResults(f::BarrierJuMPFormulator, model::JuMP.Model)
     X = unbatch_and_disjoint(x, nm, T, HEX_X_DIM)
     U = unbatch_and_disjoint(u, nm, T-1, HEX_U_DIM)
     t = 0.0:Δt:Δt*(T-1)
-    return HexOSQPResults(X,U,t)
+    return OSQPResults(X,U,t)
 end
 
 to_vec(v::AbstractVector) = v
 to_vec(v) = [v]
 
-Base.getindex(res::HexOSQPResults, i) = HexOSQPResults(to_vec(res.X[i]),to_vec(res.U[i]),res.t)
+Base.getindex(res::OSQPResults, i) = OSQPResults(to_vec(res.X[i]),to_vec(res.U[i]),res.t)
 
-@recipe function plot(res::HexOSQPResults)
+@recipe function plot(res::OSQPResults)
     N = length(res.X)
     @assert N == length(res.U)
     layout := (N, 2)

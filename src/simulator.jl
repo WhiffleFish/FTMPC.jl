@@ -1,13 +1,13 @@
 # https://jump.dev/JuMP.jl/stable/manual/objective/#Modify-an-objective
 struct Simulator{P}
-    sys::LinearHexModel
+    sys::CTLinearModel
     planner::P
     x0::Vector{Float64}
     T::Int
     progress::Bool
 end
 
-function Simulator(sys::LinearHexModel, planner; x0=zeros(12), T=50, progress=true)
+function Simulator(sys::CTLinearModel, planner; x0=zeros(12), T=50, progress=true)
     return Simulator(sys, planner, x0, T, progress)
 end
 
@@ -91,7 +91,7 @@ struct ModeChangeSimHist
     t::Vector{Float64}
     mode::Vector{Int}
     w::Matrix{Float64}
-    info::Vector{HexOSQPResults{FloatRange}}
+    info::Vector{OSQPResults{FloatRange}}
     consensus::Vector{Int}
 end
 
@@ -111,7 +111,7 @@ function simulate(sim::ModeChangeSimulator)
     u_hist = Vector{Float64}[]
     mode_hist = Int[]
     imm_state_hist = Vector{Float64}[]
-    info = HexOSQPResults{StepRangeLen{Float64, Base.TwicePrecision{Float64}, Base.TwicePrecision{Float64}, Int64}}[]
+    info = OSQPResults{StepRangeLen{Float64, Base.TwicePrecision{Float64}, Base.TwicePrecision{Float64}, Int64}}[]
     consensus_hist = Int[]
 
     prog = Progress(T; enabled=sim.progress)

@@ -29,7 +29,7 @@ f = BarrierJuMPFormulator(
 
 model = JuMPModel(f, x0)
 optimize!(model)
-res = MPC.HexOSQPResults(f, model)
+res = MPC.OSQPResults(f, model)
 
 @test MPC.max_barrier_violation(f, model) ≤ 0.1
 

@@ -67,7 +67,7 @@ function (b::BinaryConsensusSearch)(t)
     @show t
     set_consensus_horizon(model, f, t)
     optimize!(model)
-    info = HexOSQPResults(f, model)
+    info = OSQPResults(f, model)
     return model, optimizer_action(model, f), info
 end
 

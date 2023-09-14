@@ -70,7 +70,7 @@ dsys = LinearHexModel(0)
 
 planner = MPC.FTMPCPlanner(model, f, 1)
 MPC.action(planner, x0)
-res = MPC.HexOSQPResults(f, model)
+res = MPC.OSQPResults(f, model)
 
 i = 2
 plot(

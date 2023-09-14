@@ -53,7 +53,7 @@ f = BarrierJuMPFormulator(
 model = JuMPModel(f, x0)
 optimize!(model)
 
-res = MPC.HexOSQPResults(f, model)
+res = MPC.OSQPResults(f, model)
 
 planner = FTMPCPlanner(model, f)
 sim = MPC.Simulator(LinearHexModel(0), planner, x0=x0, T=100)

@@ -32,7 +32,7 @@ f = BarrierJuMPFormulator(
 model = JuMPModel(f, x0)
 optimize!(model)
 
-res = MPC.HexOSQPResults(f, model)
+res = MPC.OSQPResults(f, model)
 p1 = plot(res.t,
     trans_states(flip_z(res.X[1]))',
     labels=permutedims(MPC.STATE_LABELS[MPC.TRANSLATIONAL_STATES]),

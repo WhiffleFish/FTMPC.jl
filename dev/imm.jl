@@ -64,7 +64,7 @@ model = JuMPModel(f, x0)
 MPC.set_consensus_horizon(model, f, 1)
 optimize!(model)
 
-res = MPC.HexOSQPResults(f, model)
+res = MPC.OSQPResults(f, model)
 p1 = plot(pos_states(res.X[1])')
 p2 = plot(pos_states(res.X[2])')
 p3 = plot(pos_states(res.X[3])')

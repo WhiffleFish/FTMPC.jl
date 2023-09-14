@@ -14,17 +14,12 @@ T = 10
 u_bounds = (-Inf,Inf)
 nm = length(failures)
 
-# FIXME: should be different stuff here
 models = [MPC.HexCTLinearModel(failure) for failure in failures]
 sys = MPC.BatchDynamics(models; T, Δt, u_bounds)
 
 x0 = zeros(12)
 x_ref = zeros(12)
 x_ref[1:3] .= [-0.4, 0.4, 5]
-
-q_vec = zeros(12)
-q_vec[1:3] .= 1.
-Q = diagm(q_vec)
 
 f = BarrierJuMPFormulator(
     sys,
@@ -41,6 +36,8 @@ f = BarrierJuMPFormulator(
 )
 model = JuMPModel(f, x0)
 unit_planner = MPC.FTMPCPlanner(model, f, 1)
+a, info = MPC.action_info(unit_planner, rand(12)*1e-2)
 
-using BenchmarkTools
-@btime MPC.action(unit_planner, rand(12)*0.01)
+unit_sim = Simulator(MPC.HexIMM(;Δt), unit_planner, x0=x0, T=100, failure=MPC.FixedFailure(10,3;instant_update=true))
+unit_hist = simulate(unit_sim)
+plot(unit_hist, lw=2)
