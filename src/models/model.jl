@@ -1,22 +1,22 @@
-struct CTLinearModel{AT<:AbstractMatrix, BT<:AbstractMatrix, CT<:AbstractMatrix, DT<:AbstractMatrix}
+struct CTLinearModel
     ss::StateSpace{Continuous, Float64}
     x::Vector{Float64}
     u::Vector{Float64}
-    CTLinearModel(A::AT,B::BT,C::CT=default_c(B), D::DT=default_d(B)) where {AT,BT,CT,DT} = new{AT,BT,CT,DT}(A,B,C,D)
+    CTLinearModel(ss,x=zeros(size(ss.A, 1)), u=zeros(size(ss.B, 2))) = new(ss,x,u)
 end
 
 statedim(model::CTLinearModel) = size(model.ss.A, 1)
 controldim(model::CTLinearModel) = size(model.ss.B, 2)
 measdim(model::CTLinearModel) = size(model.ss.C, 1)
 
-struct BatchDynamics{M1,M2}
+struct BatchDynamics{M1<:AbstractMatrix,M2<:AbstractMatrix}
     A::M1
     B::M2
     Δ_nom::Vector{Float64}
     modes::Vector{Int}
     T::Int
     Δt::Float64
-    u_bound::Vector{Float64}
+    u_bounds::NTuple{2,Vector{Float64}}
     inner_statedim::Int
     inner_controldim::Int
     inner_measdim::Int
@@ -28,8 +28,8 @@ convert_u_bound(sys, v::Number) = fill(v, controldim(sys))
 """
 Want to be fed a vector of discrete linear models
 """
-function BatchDynamics(model_vec::AbstractVector{<:CTLinearModel}; T=10, Δt=0.1, u_bound=(-Inf,Inf))
-    @assert length(u_bound) == 2
+function BatchDynamics(model_vec::AbstractVector{<:CTLinearModel}; T=10, Δt=0.1, u_bounds=(-Inf,Inf))
+    @assert length(u_bounds) == 2
     # TODO: check that all models have same dims
     n = length(model_vec)
     sys1 = first(model_vec)
@@ -38,9 +38,11 @@ function BatchDynamics(model_vec::AbstractVector{<:CTLinearModel}; T=10, Δt=0.1
     nu = controldim(sys1)
     ny = measdim(sys1)
 
-    u_lower = convert_u_bound(sys1, first(u_bound))
-    u_upper = convert_u_bound(sys1, last(u_bound))
-    
+    u_lower = convert_u_bound(sys1, first(u_bounds))
+    u_lower = repeat(u_lower, n*(T-1))
+    u_upper = convert_u_bound(sys1, last(u_bounds))
+    u_upper = repeat(u_upper, n*(T-1))
+
     As = Matrix{Float64}[]
     Bs = Matrix{Float64}[]
     u_noms = Vector{Float64}[]
@@ -58,5 +60,25 @@ function BatchDynamics(model_vec::AbstractVector{<:CTLinearModel}; T=10, Δt=0.1
     U_nom = repeat(u_nom_t, T-1)
     Δ_nom = B̄*U_nom
 
-    return BatchDynamics(A, B, Δ_nom, modes, T, Δt, (u_lower, u_upper), nx , nu, ny)
+    # seems like unnecessary information
+    modes = vec(eachindex(model_vec)) # FIXME: ??? By default just number the modes consecutively
+    
+    return BatchDynamics(
+            sparse(Ā), 
+            sparse(B̄), 
+            convert(Vector{Float64}, Δ_nom),
+            convert(Vector{Int}, modes),
+            T, 
+            Δt, 
+            (u_lower, u_upper), 
+            nx, nu, ny
+        )
 end
+
+time_step(sys::BatchDynamics) = sys.Δt
+n_modes(sys::BatchDynamics) = length(sys.modes)
+horizon(sys::BatchDynamics) = sys.T
+
+inner_statedim(sys::BatchDynamics) = sys.inner_statedim
+inner_controldim(sys::BatchDynamics) = sys.inner_controldim
+inner_measdim(sys::BatchDynamics) = sys.inner_measdim

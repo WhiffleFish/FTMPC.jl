@@ -13,17 +13,18 @@ end
 
 function linear_constraint_barrier(sys,a,b,γ)
     nm, T = n_modes(sys), horizon(sys)
+    _nx, _nu = inner_statedim(sys), inner_controldim(sys)
 
-    A = zeros(T*nm, T*nm*12 + (T-1)*nm*6)
+    A = zeros(T*nm, T*nm*_nx + (T-1)*nm*_nu)
 
     for t ∈ 1:T-1
-        t_section = (t-1)*nm*12
-        next_t_section = t*nm*12
+        t_section = (t-1)*nm*_nx
+        next_t_section = t*nm*_nx
         for mode ∈ 1:nm
-            x_section = t_section + (mode-1)*12
-            x_idxs = x_section+1 : x_section+12
-            next_x_section = next_t_section + (mode-1)*12
-            next_x_idxs = next_x_section+1 : next_x_section+12
+            x_section = t_section + (mode-1)*_nx
+            x_idxs = x_section+1 : x_section+_nx
+            next_x_section = next_t_section + (mode-1)*_nx
+            next_x_idxs = next_x_section+1 : next_x_section+_nx
 
             section_i = (t-1)*nm + mode
             @. A[section_i, next_x_idxs] .= -a
@@ -36,7 +37,7 @@ function linear_constraint_barrier(sys,a,b,γ)
 end
 
 struct BarrierJuMPFormulator{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10}
-    sys::HexBatchDynamics{T1,T2}
+    sys::BatchDynamics{T1,T2}
     solver::T3
     P::T4
     q::T5
@@ -71,14 +72,14 @@ end
 barrier_constraints(sys,::Nothing) = nothing
 
 function BarrierJuMPFormulator(
-    sys::HexBatchDynamics,
+    sys::BatchDynamics,
     solver;
-    Q=I(12),
-    R=I(6),
-    x_ref=zeros(12),
+    Q=I(inner_statedim(sys)),
+    R=I(inner_controldim(sys)),
+    x_ref=zeros(inner_statedim(sys)),
     constraints = nothing,
     kwargs...)
-    @assert size(x_ref) == (12,)
+    @assert size(x_ref) == (inner_statedim(sys),)
     
     nm, T = n_modes(sys), horizon(sys)
 
@@ -232,7 +233,7 @@ function modified_objective_model(f, ws::AbstractVector)
     return model
 end
 
-function set_objective_weights(model::JuMP.Model, f, ws::AbstractVector)
+function set_objective_weights(model::JuMP.Model, f::BarrierJuMPFormulator, ws::AbstractVector)
     nm,T = n_modes(f.sys), horizon(f.sys)
     @assert length(ws) == nm
     x = model[:x]
@@ -250,14 +251,14 @@ function set_objective_weights(model::JuMP.Model, f, ws::AbstractVector)
     return model
 end
 
-function set_initialstate(model::JuMP.Model, sys::HexBatchDynamics, x0)
+function set_initialstate(model::JuMP.Model, sys::BatchDynamics, x0)
     (;A,Δ_nom) = sys
     nm = n_modes(sys)
     set_normalized_rhs.(model[:DYNAMICS], A*repeat(x0, nm) - Δ_nom)
     return model
 end
 
-function consensus_constraint(sys::HexBatchDynamics, T_consensus=horizon(sys)-1)
+function consensus_constraint(sys::BatchDynamics, T_consensus=horizon(sys)-1)
     nm, T = n_modes(sys), horizon(sys)
     @assert 1 ≤ T_consensus ≤ T-1
     nu = size(sys.B, 2)

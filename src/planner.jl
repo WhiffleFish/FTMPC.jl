@@ -17,7 +17,7 @@ function set_initialstate(p::FTMPCPlanner, x)
 end
 
 function set_objective_weights(p::FTMPCPlanner, ws::AbstractVector)
-    set_objective_weights(p.model, p.f.sys, ws)
+    set_objective_weights(p.model, p.f, ws)
 end
 
 action(p::FTMPCPlanner, x::AbstractVector) = first(action_info(p, x))
@@ -55,32 +55,35 @@ set_consensus_horizon(p::ConsensusSearchPlanner, t) = set_consensus_horizon(p.mo
 function set_consensus_horizon(model::JuMP.Model, f, t::Int)
     (;sys) = f
     nm, T = n_modes(sys), horizon(sys)
+    _nx, _nu = inner_statedim(sys), inner_controldim(sys)
     nx, nu = size(sys.B)
     C = model[:CONSENSUS]
     
     @assert t < T
-    @assert length(C) == nu == 6*nm*(T-1)
+    @show length(C)
+    @show nu,nm,T
+    @assert length(C) == nu == _nu*nm*(T-1)
 
     u = model[:x][nx+1:end]
     for t ∈ 1:t
-        t_section = (t-1)*nm*6
+        t_section = (t-1)*nm*_nu
         for mode ∈ 2:nm
-            mode_section = t_section + (mode-1)*6
-            for u_i ∈ 1:6
+            mode_section = t_section + (mode-1)*_nu
+            for u_i ∈ 1:_nu
                 u_idx = mode_section + u_i
                 JuMP.set_normalized_coefficient(C[u_idx], u[u_idx], -1)
-                JuMP.set_normalized_coefficient(C[u_idx], u[u_idx-6], 1)
+                JuMP.set_normalized_coefficient(C[u_idx], u[u_idx-_nu], 1)
             end
         end
     end
     for t ∈ t+1 : T-1
-        t_section = (t-1)*nm*6
+        t_section = (t-1)*nm*_nu
         for mode ∈ 2:nm
-            mode_section = t_section + (mode-1)*6
-            for u_i ∈ 1:6
+            mode_section = t_section + (mode-1)*_nu
+            for u_i ∈ 1:_nu
                 u_idx = mode_section + u_i
                 JuMP.set_normalized_coefficient(C[u_idx], u[u_idx], 0)
-                JuMP.set_normalized_coefficient(C[u_idx], u[u_idx-6], 0)
+                JuMP.set_normalized_coefficient(C[u_idx], u[u_idx-_nu], 0)
             end
         end
     end

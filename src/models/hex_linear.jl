@@ -97,6 +97,10 @@ struct LinearHexModel
     )
 end
 
+function HexCTLinearModel(failure::Int=0)
+    return CTLinearModel(ss(hex_linear(failure)...), zeros(6), hover_control(failure))
+end
+
 function dstep(dsys::StateSpace{<:Discrete}, x, δu)
     (;A,B) = dsys
     return A*x + B*δu

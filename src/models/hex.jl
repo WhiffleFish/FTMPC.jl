@@ -44,3 +44,7 @@ function HexBatchDynamics(;T=10, Δt=0.1, failures=0:6, u_bounds=(-Inf,Inf))
         u_bounds
     )
 end
+
+inner_statedim(sys::HexBatchDynamics) = 12
+inner_controldim(sys::HexBatchDynamics) = 6
+inner_measdim(sys::HexBatchDynamics) = 12

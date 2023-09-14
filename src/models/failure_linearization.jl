@@ -16,6 +16,7 @@ const HOVER_RHS = @SVector [0,0,0,m*g]
 function hover_control(failed=0)
     if !iszero(failed)
         not_failed = filter(!=(failed), 1:6)
+        @assert !isempty(not_failed)
         A = HOVER_LHS[:,not_failed]
         u_not_failed = pinv(A)*HOVER_RHS
         u_eq = zeros(6)
