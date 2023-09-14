@@ -6,6 +6,32 @@ struct IMM{O}
     obs_dist::O
 end
 
+statedim(sys::StateSpace) = size(sys.B,1)
+controldim(sys::StateSpace) = size(sys.B,2)
+
+default_u_nom(sys::StateSpace) = zeros(controldim(sys))
+default_u_noms(sys_vec::AbstractVector{<:StateSpace}) = map(default_u_nom, sys_vec)
+
+struct NothingDist end
+
+function IMM(modes, u_noms=default_u_noms(modes); weights=basis(length(modes),1))
+    n = length(modes)
+    return IMM(
+        modes,
+        u_noms, # make default zeros
+        Array{Float64}(I(n)),
+        weights,
+        Returns(NothingDist()) # default unused obs_dist
+    )
+end
+
+Random.rand(rng::Random.AbstractRNG, ::NothingDist) = nothing
+
+function default_imm(planner::ConsensusSearchPlanner)
+    sys = planner.f.sys # BatchDynamics
+    return IMM(sys.models, sys.u_noms)
+end
+
 @inline modes(imm::IMM) = imm.modes
 @inline weights(imm::IMM) = imm.weights
 
@@ -45,3 +71,5 @@ function update!(imm::IMM, x, u, y)
     end
     return normalize!(weights, 1)
 end
+
+update!(imm::IMM{Returns{NothingDist}}, x, u, y) = imm.weights

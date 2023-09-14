@@ -99,6 +99,9 @@ function Simulator(imm::IMM, planner; x0=zeros(12), failure=NoFailure(), T=50, p
     return ModeChangeSimulator(imm, planner, x0, T, failure, progress)
 end
 
+function Simulator(planner; x0=zeros(12), failure=NoFailure(), T=50, progress=true)
+    return ModeChangeSimulator(default_imm(planner), planner, x0, T, failure, progress)
+end
 
 function simulate(sim::ModeChangeSimulator)
     (;imm, T, planner, failure) = sim

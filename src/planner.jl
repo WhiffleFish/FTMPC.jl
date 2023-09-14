@@ -60,8 +60,6 @@ function set_consensus_horizon(model::JuMP.Model, f, t::Int)
     C = model[:CONSENSUS]
     
     @assert t < T
-    @show length(C)
-    @show nu,nm,T
     @assert length(C) == nu == _nu*nm*(T-1)
 
     u = model[:x][nx+1:end]

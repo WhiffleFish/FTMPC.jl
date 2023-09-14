@@ -5,6 +5,17 @@ struct CTLinearModel
     CTLinearModel(ss,x=zeros(size(ss.A, 1)), u=zeros(size(ss.B, 2))) = new(ss,x,u)
 end
 
+struct DTLinearModel
+    ss::StateSpace{Discrete{Float64}, Float64}
+    x::Vector{Float64}
+    u::Vector{Float64}
+    Δt::Float64
+end
+
+DTLinearModel(sys::CTLinearModel, Δt) = DTLinearModel(c2d(sys.ss,Δt), sys.x, sys.u, Δt)
+
+ControlSystemsBase.c2d(sys::CTLinearModel, Δt) = DTLinearModel(sys, Δt)
+
 statedim(model::CTLinearModel) = size(model.ss.A, 1)
 controldim(model::CTLinearModel) = size(model.ss.B, 2)
 measdim(model::CTLinearModel) = size(model.ss.C, 1)
@@ -20,6 +31,8 @@ struct BatchDynamics{M1<:AbstractMatrix,M2<:AbstractMatrix}
     inner_statedim::Int
     inner_controldim::Int
     inner_measdim::Int
+    u_noms::Vector{Vector{Float64}}
+    models::Vector{StateSpace{Discrete{Float64}, Float64}}
 end
 
 convert_u_bound(sys, v::AbstractVector) = v
@@ -46,12 +59,14 @@ function BatchDynamics(model_vec::AbstractVector{<:CTLinearModel}; T=10, Δt=0.1
     As = Matrix{Float64}[]
     Bs = Matrix{Float64}[]
     u_noms = Vector{Float64}[]
+    discrete_models = StateSpace{Discrete{Float64}, Float64}[]
 
     for model in model_vec
         push!(u_noms, model.u)
         dsys = c2d(model.ss, Δt)
         push!(As, dsys.A)
         push!(Bs, dsys.B)
+        push!(discrete_models, dsys)
     end
     
     A,B,_,_ = independent_dynamics(n, As, Bs)
@@ -61,7 +76,7 @@ function BatchDynamics(model_vec::AbstractVector{<:CTLinearModel}; T=10, Δt=0.1
     Δ_nom = B̄*U_nom
 
     # seems like unnecessary information
-    modes = vec(eachindex(model_vec)) # FIXME: ??? By default just number the modes consecutively
+    modes = vec(eachindex(model_vec))
     
     return BatchDynamics(
             sparse(Ā), 
@@ -71,7 +86,9 @@ function BatchDynamics(model_vec::AbstractVector{<:CTLinearModel}; T=10, Δt=0.1
             T, 
             Δt, 
             (u_lower, u_upper), 
-            nx, nu, ny
+            nx, nu, ny,
+            u_noms,
+            discrete_models
         )
 end
 

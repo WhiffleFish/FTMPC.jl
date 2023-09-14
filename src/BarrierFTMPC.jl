@@ -10,6 +10,7 @@ using RecipesBase
 using Random
 using Distributions: pdf, MvNormal
 using JuMP
+using Random
 
 include(joinpath("models", "models.jl"))
 
