@@ -191,9 +191,10 @@ end
 function modified_objective_model(f, ws::AbstractVector)
     (;sys, barrier, P_vec, Q_vec, x_ref_full) = f
     (;A,B,Δ_nom,u_bounds) = sys
+    _nx = inner_statedim(sys)
     nm, T = n_modes(sys), horizon(sys)
     u_lower, u_upper = u_bounds
-    x0 = zeros(12) # will be replaced in `action` call anyways
+    x0 = zeros(_nx) # will be replaced in `action` call anyways
 
     P_vec_new = P_vec .* ws
     Q_vec_new = Q_vec .* ws
@@ -234,13 +235,16 @@ function modified_objective_model(f, ws::AbstractVector)
 end
 
 function set_objective_weights(model::JuMP.Model, f::BarrierJuMPFormulator, ws::AbstractVector)
+    (;sys) = f
     nm,T = n_modes(f.sys), horizon(f.sys)
+    _nx = inner_statedim(sys)
+    _nu = inner_controldim(sys)
     @assert length(ws) == nm
     x = model[:x]
     
     #FIXME: shouldn't be hardcoding P,Q
-    P = [I(12)*w for w ∈ ws] 
-    Q = [I(6)*w for w ∈ ws]
+    P = [I(_nx)*w for w ∈ ws] 
+    Q = [I(_nu)*w for w ∈ ws]
     
     P_full = process_P(P, nm, T)
     Q_full = process_P(Q, nm, T-1)
@@ -261,17 +265,19 @@ end
 function consensus_constraint(sys::BatchDynamics, T_consensus=horizon(sys)-1)
     nm, T = n_modes(sys), horizon(sys)
     @assert 1 ≤ T_consensus ≤ T-1
+    _nx = inner_statedim(sys)
+    _nu = inner_controldim(sys)
     nu = size(sys.B, 2)
 
     m = zeros(nu, nu)
     for t ∈ 1:T_consensus
-        t_section = (t-1)*nm*6
+        t_section = (t-1)*nm*_nu
         for mode ∈ 2:nm
-            mode_section = t_section + (mode-1)*6
-            for u_i ∈ 1:6
+            mode_section = t_section + (mode-1)*_nu
+            for u_i ∈ 1:_nu
                 u_idx = mode_section + u_i
                 m[u_idx, u_idx] = -1
-                m[u_idx, u_idx-6] = 1
+                m[u_idx, u_idx-_nu] = 1
             end
         end
     end

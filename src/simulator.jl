@@ -7,7 +7,7 @@ struct Simulator{P}
     progress::Bool
 end
 
-function Simulator(sys::CTLinearModel, planner; x0=zeros(12), T=50, progress=true)
+function Simulator(sys::CTLinearModel, planner; x0=zeros(statedim(sys)), T=50, progress=true)
     return Simulator(sys, planner, x0, T, progress)
 end
 
@@ -95,11 +95,11 @@ struct ModeChangeSimHist
     consensus::Vector{Int}
 end
 
-function Simulator(imm::IMM, planner; x0=zeros(12), failure=NoFailure(), T=50, progress=true)
+function Simulator(imm::IMM, planner; x0=zeros(statedim(sys)), failure=NoFailure(), T=50, progress=true)
     return ModeChangeSimulator(imm, planner, x0, T, failure, progress)
 end
 
-function Simulator(planner; x0=zeros(12), failure=NoFailure(), T=50, progress=true)
+function Simulator(planner; x0=zeros(statedim(sys)), failure=NoFailure(), T=50, progress=true)
     return ModeChangeSimulator(default_imm(planner), planner, x0, T, failure, progress)
 end
 
