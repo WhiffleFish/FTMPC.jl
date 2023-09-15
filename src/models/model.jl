@@ -5,6 +5,10 @@ struct CTLinearModel
     CTLinearModel(ss,x=zeros(size(ss.A, 1)), u=zeros(size(ss.B, 2))) = new(ss,x,u)
 end
 
+statedim(model::CTLinearModel) = size(model.ss.A, 1)
+controldim(model::CTLinearModel) = size(model.ss.B, 2)
+measdim(model::CTLinearModel) = size(model.ss.C, 1)
+
 struct DTLinearModel
     ss::StateSpace{Discrete{Float64}, Float64}
     x::Vector{Float64}
@@ -16,9 +20,9 @@ DTLinearModel(sys::CTLinearModel, Δt) = DTLinearModel(c2d(sys.ss,Δt), sys.x, s
 
 ControlSystemsBase.c2d(sys::CTLinearModel, Δt) = DTLinearModel(sys, Δt)
 
-statedim(model::CTLinearModel) = size(model.ss.A, 1)
-controldim(model::CTLinearModel) = size(model.ss.B, 2)
-measdim(model::CTLinearModel) = size(model.ss.C, 1)
+statedim(model::DTLinearModel) = size(model.ss.A, 1)
+controldim(model::DTLinearModel) = size(model.ss.B, 2)
+measdim(model::DTLinearModel) = size(model.ss.C, 1)
 
 struct BatchDynamics{M1<:AbstractMatrix,M2<:AbstractMatrix}
     A::M1
@@ -38,14 +42,19 @@ end
 convert_u_bound(sys, v::AbstractVector) = v
 convert_u_bound(sys, v::Number) = fill(v, controldim(sys))
 
+BatchDynamics(model_vec::AbstractVector{<:CTLinearModel}; Δt, kwargs...) = BatchDynamics(
+    map(model -> c2d(model, Δt), model_vec); kwargs...
+)
+
 """
 Want to be fed a vector of discrete linear models
 """
-function BatchDynamics(model_vec::AbstractVector{<:CTLinearModel}; T=10, Δt=0.1, u_bounds=(-Inf,Inf))
+function BatchDynamics(model_vec::AbstractVector{<:DTLinearModel}; T=10, u_bounds=(-Inf,Inf))
     @assert length(u_bounds) == 2
     # TODO: check that all models have same dims
     n = length(model_vec)
     sys1 = first(model_vec)
+    Δt = sys1.Δt
     
     nx = statedim(sys1)
     nu = controldim(sys1)
@@ -63,7 +72,8 @@ function BatchDynamics(model_vec::AbstractVector{<:CTLinearModel}; T=10, Δt=0.1
 
     for model in model_vec
         push!(u_noms, model.u)
-        dsys = c2d(model.ss, Δt)
+        dsys = model.ss
+        # dsys = c2d(model.ss, Δt)
         push!(As, dsys.A)
         push!(Bs, dsys.B)
         push!(discrete_models, dsys)
