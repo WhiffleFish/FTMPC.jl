@@ -1,3 +1,4 @@
+# ax <= b
 struct LinearConstraint
     A::Vector{Float64}
     b::Float64
@@ -27,12 +28,14 @@ function linear_constraint_barrier(sys,a,b,γ)
             next_x_idxs = next_x_section+1 : next_x_section+_nx
 
             section_i = (t-1)*nm + mode
-            @. A[section_i, next_x_idxs] .= -a
-            @. A[section_i, x_idxs] = (1-γ)*a
+            @. A[section_i, next_x_idxs] .= a
+            @. A[section_i, x_idxs] = (γ-1)*a
         end
     end
     ub = fill(γ*b, T*nm)
+    ub[nm*(T-1)+1:nm*T] .= 0.0
     lb = fill(-Inf, T*nm)
+
     return BarrierConstraint(A, lb, ub)
 end
 
@@ -145,11 +148,11 @@ function OSQPResults(f::BarrierJuMPFormulator, model::JuMP.Model)
     Δt = sys.Δt
     nm, T = n_modes(sys), horizon(sys)
     X = value.(model[:x])
-    x = X[1:HEX_X_DIM*nm*T]
-    u = X[HEX_X_DIM*nm*T+1 : end]
+    x = X[1:inner_statedim(f.sys)*nm*T]
+    u = X[inner_statedim(f.sys)*nm*T+1 : end]
 
-    X = unbatch_and_disjoint(x, nm, T, HEX_X_DIM)
-    U = unbatch_and_disjoint(u, nm, T-1, HEX_U_DIM)
+    X = unbatch_and_disjoint(x, nm, T, inner_statedim(f.sys))
+    U = unbatch_and_disjoint(u, nm, T-1, inner_controldim(f.sys))
     t = 0.0:Δt:Δt*(T-1)
     return OSQPResults(X,U,t)
 end

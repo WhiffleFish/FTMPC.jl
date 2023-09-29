@@ -25,7 +25,7 @@ function fault_free_vtol()
     ]
 
     M = default_d(G)
-    return DTLinearModel(ss(F, G, H, M, VTOL_Ts))
+    return ss(F, G, H, M, VTOL_Ts)
 end
 
 function actuator_fault_vtol()
@@ -51,7 +51,7 @@ function actuator_fault_vtol()
     ]
 
     M = default_d(G)
-    return DTLinearModel(ss(F, G, H, M, VTOL_Ts))
+    return ss(F, G, H, M, VTOL_Ts)
 end
 
 function system_fault_vtol()
@@ -77,5 +77,5 @@ function system_fault_vtol()
     ]
 
     M = default_d(G)
-    return DTLinearModel(ss(F, G, H, M, VTOL_Ts))
+    return ss(F, G, H, M, VTOL_Ts)
 end

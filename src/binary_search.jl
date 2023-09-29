@@ -14,6 +14,7 @@ function binary_search_max(f, isvalid, T)
             _max = t - 1
         end
     end
+    _max = max(_min, _max)
     max_val = f(_max)
     return if isvalid(max_val)
         max_val, _max
@@ -64,7 +65,7 @@ end
 
 function (b::BinaryConsensusSearch)(t)
     (;model, f) = b
-    @show t
+    #@show t
     set_consensus_horizon(model, f, t)
     optimize!(model)
     info = OSQPResults(f, model)

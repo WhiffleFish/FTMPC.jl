@@ -7,11 +7,18 @@ using Plots
 
 default(grid=false, framestyle=:box, fontfamily="Computer Modern", label="")
 constraints = MPC.ElevatorShaft(h=6, γ=1e-1)
+
+h = 6; γ = 1e-1
+γ = 1.0
+constraints = LinearConstraint(-basis(12, 3)*1, h, γ)
+
+
 failures = 0:6
 T = 10
 Δt = 0.05
 
 u_bounds = (-Inf,Inf)
+u_bounds = (0.1,15.)
 nm = length(failures)
 
 models = [MPC.HexCTLinearModel(failure) for failure in failures]
@@ -38,11 +45,15 @@ model = JuMPModel(f, x0)
 unit_planner = MPC.FTMPCPlanner(model, f, 1)
 a, info = MPC.action_info(unit_planner, rand(12)*1e-2)
 
+failT = 0.5
+simT = 100
+failT = Int(round(failT*simT))
+
 unit_sim = Simulator(unit_planner, x0=x0, T=100, failure=MPC.FixedFailure(10,3;instant_update=true))
 unit_hist = simulate(unit_sim)
 plot(unit_hist, lw=2)
 
 consensus_planner = MPC.ConsensusSearchPlanner(model, f)
-consensus_sim = Simulator(consensus_planner, x0=x0, T=50, failure=MPC.FixedFailure(5,3;instant_update=true))
+consensus_sim = Simulator(consensus_planner, x0=x0, T=simT, failure=MPC.FixedFailure(failT,3;instant_update=true))
 consensus_hist = simulate(consensus_sim)
 plot(consensus_hist)

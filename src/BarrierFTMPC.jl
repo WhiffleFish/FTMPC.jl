@@ -11,6 +11,7 @@ using Random
 using Distributions: pdf, MvNormal
 using JuMP
 using Random
+using ColorSchemes
 
 include(joinpath("models", "models.jl"))
 

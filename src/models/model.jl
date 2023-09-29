@@ -42,7 +42,7 @@ end
 convert_u_bound(sys, v::AbstractVector) = v
 convert_u_bound(sys, v::Number) = fill(v, controldim(sys))
 
-BatchDynamics(model_vec::AbstractVector{<:CTLinearModel}; Δt, kwargs...) = BatchDynamics(
+BatchDynamics(model_vec::AbstractVector{<:CTLinearModel}, Δt; kwargs...) = BatchDynamics(
     map(model -> c2d(model, Δt), model_vec); kwargs...
 )
 

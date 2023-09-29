@@ -1,4 +1,6 @@
-mutable struct FTMPCPlanner{F<:BarrierJuMPFormulator}
+abstract type SimplePlanner end
+
+mutable struct FTMPCPlanner{F<:BarrierJuMPFormulator} <:SimplePlanner
     model::JuMP.Model
     f::F
     consensus_horizon::Int
@@ -8,15 +10,20 @@ mutable struct FTMPCPlanner{F<:BarrierJuMPFormulator}
     end
 end
 
-time_step(p::FTMPCPlanner) = time_step(p.f)
-n_modes(p::FTMPCPlanner) = n_modes(p.f.sys)
-horizon(p::FTMPCPlanner) = horizon(p.f.sys)
+mutable struct NonRobustPlanner{F<:BarrierJuMPFormulator} <:SimplePlanner
+    model::JuMP.Model
+    f::F
+end
 
-function set_initialstate(p::FTMPCPlanner, x)
+time_step(p::SimplePlanner) = time_step(p.f)
+n_modes(p::SimplePlanner) = n_modes(p.f.sys)
+horizon(p::SimplePlanner) = horizon(p.f.sys)
+
+function set_initialstate(p::SimplePlanner, x)
     set_initialstate(p.model, p.f.sys, x)
 end
 
-function set_objective_weights(p::FTMPCPlanner, ws::AbstractVector)
+function set_objective_weights(p::SimplePlanner, ws::AbstractVector)
     set_objective_weights(p.model, p.f, ws)
 end
 
@@ -26,7 +33,7 @@ function action_info(p::FTMPCPlanner, x::AbstractVector)
     set_initialstate(p, x)
     optimize!(p.model)
     nx,nu = size(p.f.sys.B)
-    u = value.(p.model[:x][nx+1 : nx+HEX_U_DIM])
+    u = value.(p.model[:x][nx+1 : nx+inner_controldim(p.f.sys)])
     return if any(isnan, u)
         @warn("No feasible action")
         nothing, nothing
@@ -42,6 +49,8 @@ mutable struct ConsensusSearchPlanner{F<:BarrierJuMPFormulator}
     f::F
 end
 
+
+
 time_step(p::ConsensusSearchPlanner) = time_step(p.f)
 n_modes(p::ConsensusSearchPlanner) = n_modes(p.f.sys)
 horizon(p::ConsensusSearchPlanner) = horizon(p.f.sys)
@@ -52,18 +61,18 @@ end
 
 set_consensus_horizon(p::ConsensusSearchPlanner, t) = set_consensus_horizon(p.model, p.f, t)
 
-function set_consensus_horizon(model::JuMP.Model, f, t::Int)
+function set_consensus_horizon(model::JuMP.Model, f, t_consensus::Int)
     (;sys) = f
     nm, T = n_modes(sys), horizon(sys)
     _nx, _nu = inner_statedim(sys), inner_controldim(sys)
     nx, nu = size(sys.B)
     C = model[:CONSENSUS]
     
-    @assert t < T
+    @assert t_consensus < T
     @assert length(C) == nu == _nu*nm*(T-1)
 
     u = model[:x][nx+1:end]
-    for t ∈ 1:t
+    for t ∈ 1:t_consensus
         t_section = (t-1)*nm*_nu
         for mode ∈ 2:nm
             mode_section = t_section + (mode-1)*_nu
@@ -74,7 +83,7 @@ function set_consensus_horizon(model::JuMP.Model, f, t::Int)
             end
         end
     end
-    for t ∈ t+1 : T-1
+    for t ∈ t_consensus+1 : T-1
         t_section = (t-1)*nm*_nu
         for mode ∈ 2:nm
             mode_section = t_section + (mode-1)*_nu
@@ -90,7 +99,7 @@ end
 
 function optimizer_action(model, f)
     nx = size(f.sys.B, 1)
-    return value.(model[:x][nx+1 : nx+HEX_U_DIM])
+    return value.(model[:x][nx+1 : nx+inner_controldim(f.sys)])
 end
 
 function action_info(p::ConsensusSearchPlanner, x::AbstractVector)

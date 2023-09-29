@@ -49,21 +49,28 @@ end
 struct FixedFailure
     t::Int
     mode::Int
-    instant_update::Bool
-    FixedFailure(t, mode; instant_update=true) = new(t,mode, instant_update)
+    delay::Int
+    FixedFailure(t, mode; delay=0) = new(t, mode, delay)
 end
 
-function fail!(imm::IMM, planner, t, mode_idx, failure::FixedFailure)
+function fail!(imm::IMM, planner, t, mode_idx, ss, failure::FixedFailure)
     if t == failure.t
-        if failure.instant_update
-            imm.weights .= 0.0
-            imm.weights[failure.mode] = 1.0
-            modify_objective_weights(planner, imm.weights) 
+        imm.weights .= 0.0
+        imm.weights[failure.mode] = 1.0
+        ss = imm.modes[failure.mode]
+        if failure.delay == 0    
+            modify_objective_weights(planner, imm.weights)
         end
-        return failure.mode
-    else
-        return mode_idx
+        @warn "Failure at $t: ", failure.mode
+        return failure.mode, ss
     end
+
+    if t == failure.t + failure.delay
+        @warn "WEIGHTS MODIFIED!"
+        modify_objective_weights(planner, imm.weights) 
+    end
+
+    return mode_idx, ss
 end
 
 struct NoFailure end
@@ -81,6 +88,7 @@ struct ModeChangeSimulator{P,F}
     T::Int
     failure::F
     progress::Bool
+    verbose::Bool
 end
 
 const FloatRange = StepRangeLen{Float64, Base.TwicePrecision{Float64}, Base.TwicePrecision{Float64}, Int64}
@@ -96,11 +104,11 @@ struct ModeChangeSimHist
 end
 
 function Simulator(imm::IMM, planner; x0=zeros(statedim(sys)), failure=NoFailure(), T=50, progress=true)
-    return ModeChangeSimulator(imm, planner, x0, T, failure, progress)
+    return ModeChangeSimulator(imm, planner, x0, T, failure, progress, true)
 end
 
 function Simulator(planner; x0=zeros(statedim(sys)), failure=NoFailure(), T=50, progress=true)
-    return ModeChangeSimulator(default_imm(planner), planner, x0, T, failure, progress)
+    return ModeChangeSimulator(default_imm(planner), planner, x0, T, failure, progress, true)
 end
 
 function simulate(sim::ModeChangeSimulator)
@@ -127,6 +135,7 @@ function simulate(sim::ModeChangeSimulator)
         elseif planner isa FTMPCPlanner
             action_info(planner, x)..., 1
         end
+        #println("THIS IS U: ", u)
         if isnothing(u)
             @show x
             break
@@ -137,20 +146,22 @@ function simulate(sim::ModeChangeSimulator)
         push!(imm_state_hist, copy(imm.weights))
         push!(info, _info)
 
+        #@info u
         δu = u - imm.u_noms[mode_idx]
         xp = dstep(ss, x, δu)
-
-        y = rand(imm.obs_dist(xp))
-        update!(imm, x, u, y)
+        
+        @show "xp_nom: $xp | xp_fail: $(dstep(imm.modes[mode_idx], x, δu))"
+        #y = rand(imm.obs_dist(xp))
+        #update!(imm, x, u, y)
         x = xp
 
         # update mode
         # mode_idx = weighted_sample(imm.T[:,mode_idx])
         # ss = imm.modes[mode_idx]
 
-        mode_idx = fail!(imm, planner, t, mode_idx, failure)
-        ss = imm.modes[mode_idx]
-
+        mode_idx, ss = fail!(imm, planner, t, mode_idx, ss, failure)
+        # ss = imm.modes[mode_idx]
+        sim.verbose && @info "t: $t, mode: $mode_idx, h*: $h_star, imm weights: $(imm.weights)"
         next!(prog)
     end
     finish!(prog)
@@ -180,26 +191,120 @@ end
     layout := (1, 2)
     @series begin
         subplot := 1
-        labels --> permutedims(STATE_LABELS[TRANSLATIONAL_STATES])
+        label --> permutedims(STATE_LABELS[TRANSLATIONAL_STATES])
         sim.t[1:size(sim.x,2)], trans_states(flip_z(sim.x))'
     end
     @series begin
         subplot := 2
-        labels --> permutedims(["u$i" for i ∈ 1:6])
+        label --> permutedims(["u$i" for i ∈ 1:6])
         sim.t[1:size(sim.u,2)], sim.u'
     end
 end
 
-@recipe function plot(sim::ModeChangeSimHist)
+@recipe function plot(sim::ModeChangeSimHist, failtime, delaytime)
     layout := (1, 2)
     @series begin
         subplot := 1
-        labels --> permutedims(STATE_LABELS[TRANSLATIONAL_STATES])
+        label --> permutedims(STATE_LABELS[TRANSLATIONAL_STATES])
         sim.t[1:size(sim.x,2)], trans_states(flip_z(sim.x))'
     end
     @series begin
         subplot := 2
-        labels --> permutedims(["u$i" for i ∈ 1:6])
+        label --> permutedims(["u$i" for i ∈ 1:6])
         sim.t[1:size(sim.u,2)], sim.u'
+    end
+    @series begin # fail
+        subplot := [1,2]
+        seriestype:= :vline
+        linestyle --> :dashdot
+        seriescolor --> :black 
+        [tvec[failtime]]
+    end
+end
+
+@recipe function plot(sim::ModeChangeSimHist, labelvec, vtol::Bool, failtime, delaytime)
+    layout := (1, 2)
+    tvec = sim.t
+    @series begin
+        subplot := 1
+        label --> permutedims(labelvec)
+        sim.t[1:size(sim.x,2)], sim.x'
+    end
+    @series begin
+        subplot := 2
+        label --> permutedims(["u$i" for i ∈ 1:2])
+        sim.t[1:size(sim.u,2)], sim.u'
+    end
+    @series begin # fail plot 1
+        subplot := 1
+        seriestype:= :vline
+        linestyle --> :dashdot
+        seriescolor --> :black 
+        [tvec[failtime]]
+    end
+    @series begin # fail plot 2
+        subplot := 2
+        seriestype:= :vline
+        linestyle --> :dashdot
+        seriescolor --> :black 
+        [tvec[failtime]]
+    end
+
+    @series begin # delay plot 1
+        subplot := 1
+        seriestype:= :vline
+        linestyle --> :dashdotdot
+        seriescolor --> :blue
+        [tvec[failtime + delaytime]]
+    end
+    @series begin # delay plot 2
+        subplot := 2
+        seriestype:= :vline
+        linestyle --> :dashdotdot
+        seriescolor --> :blue
+        [tvec[failtime + delaytime]]
+    end
+end
+
+@recipe function plot(x::Vector{Vector{Float64}}, y::Vector{Vector{Float64}}, t::Vector{Vector{Float64}}, failtime, delaytime)
+    xunit = x[1]
+    xcon = x[2]
+    yunit = y[1]
+    ycon = y[2]
+    tunit = t[1]
+    tcon = t[2]
+    grid := true
+    xlims := (-10.0, first(xcon))
+    ylims := (-3.0, first(ycon))
+
+    @series begin # Consensus Plot
+        line_z := range(0.0,stop=last(tcon),length=length(xcon))
+        seriescolor := :watermelon
+        seriesalpha := 0.5
+        linestyle --> :dashdot
+        xcon, ycon
+    end
+    @series begin # Unit Plot
+        line_z := range(0.0,stop=last(tunit),length=length(xunit))
+        seriescolor := :winter
+        seriesalpha := 0.5
+        linestyle --> :dot
+        xunit, yunit
+    end
+    if failtime < length(xunit)
+        @series begin # delay plot 2
+            seriestype:= :scatter
+            marker --> :x
+            seriescolor --> :black
+            [xunit[failtime],xcon[failtime]], [yunit[failtime], ycon[failtime]]
+        end
+    end
+    if delaytime + failtime < length(xunit)
+        @series begin # delay plot 2
+            seriestype:= :scatter
+            marker --> :x
+            seriescolor --> :blue
+            [xunit[failtime+delaytime], xcon[failtime+delaytime]], [yunit[failtime+delaytime], ycon[failtime+delaytime]]
+        end
     end
 end
