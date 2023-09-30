@@ -67,17 +67,22 @@ hold off
 
 % Legend
 labels = {'\color{black} Non-Robust', ...
-          '\color{black} Unitary-Consensus', ...
+          '\color{black} First-Step Consensus', ...
           '\color{black} FGMPC'};
-legend(labels, 'Location', 'NorthWest', 'FontSize', 10, 'FontName', 'cmr12',...
-    'TextColor', 'black');
+if two_dim == true
+    legend(labels, 'FontSize', 10, 'FontName', 'cmr12',...
+        'TextColor', 'black', "Position", [0.25, 0.9, 0, 0]);
+elseif two_dim == false
+    legend(labels, "Location", "Northwest", 'FontSize', 10, 'FontName', 'cmr12',...
+        'TextColor', 'black');
+end
 
 % Save figure (pdf)
 % print('trajectory.pdf', '-dpdf', '-r300');
 if two_dim == true
-    print(gcf,'topview.png','-dpng','-r300')
+    print(gcf,'topview.png','-dpng','-r500')
 elseif two_dim == false
-    print(gcf,'3dtrajectory.png','-dpng','-r300')
+    print(gcf,'3dtrajectory.png','-dpng','-r500')
 end
 
 %% Functions
@@ -173,6 +178,5 @@ function start_goal()
 %     text(goal_coord(1)-0.2, goal_coord(2), goal_coord(3)-0.5, 'goal');
 
 end
-
 
 
