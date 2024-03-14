@@ -86,15 +86,10 @@ end
 begin
     consensus_planner = MPC.ConsensusSearchPlanner(model, f)
     consensus_sim = Simulator(consensus_planner, x0=x0, T=simtime, failure=MPC.FixedFailure(failtime,failmode;delay=delaytime))
-    function simcon(consensus_sim)
-        return simulate(consensus_sim)
-    end
-    #consensus_hist = simulate(consensus_sim)
-    consensus_hist = simcon(consensus_sim)
+    consensus_hist = simulate(consensus_sim)
     plot(consensus_hist, lw=2)
     p = plot(consensus_hist, Δt, side, ground)
 
-    #savefig(p, "consensus_hist.png")
     hists = [unit_hist, consensus_hist]
     totalplt = plot(hists, Δt, side, ground, x_ref, Int(failtime), Int(delaytime)) |> display
     plot(consensus_hist.consensus) |> display

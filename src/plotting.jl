@@ -169,21 +169,7 @@ end
     #legend_columns --> -1 =#
     fontfamily --> "Computer Modern"
     label --> labels
-
-    #= @series begin
-        subplot := 4
-        seriestype := scatter
-        lims --> (0,0.5)
-        legendfontsize --> 7
-        legend --> :left
-        fg_color_legend --> nothing
-        label --> labels
-        mc --> colors
-        frame --> :none
-        #rectangle(recend,-2,0,-side)
-        (-n:-1)',(-n:-1)'#[1,2,3,4]#,[1,2,3,4] 
-    end =#
-
+    
     # Subplot 1
     for i in eachindex(hists)
         @series begin
@@ -277,6 +263,198 @@ end
         ylims --> (-side-1,side+1)
         legend --> false
         rectangle(recend,2,0,side)
+    end
+
+    # Subplot 3
+    for i in eachindex(hists)
+        @series begin
+            subplot := 3
+            ylims --> [-ground,ground] + [-1,1]
+            xlabel --> "Time(s)"
+            tvec[i], z[i]
+        end
+    end
+    @series begin # fail
+        subplot := 3
+        seriestype:= :vline
+        linestyle --> :dashdot
+        color --> :black 
+        [tvec[1][failtime]]
+    end
+    @series begin # delay
+        subplot := 3
+        seriestype:= :vline
+        linestyle --> :dash
+        color --> :blue
+        [tvec[1][failtime + delaytime]]
+    end
+    @series begin
+        subplot := 3
+        seriestype:= :hline
+        linestyle --> :dash
+        color --> :firebrick
+        [-xref[3]]
+    end
+    @series begin
+        subplot := 3
+        opacity --> .5
+        color --> barrcolor
+        rectangle(recend,-2,0,-ground)
+    end
+    @series begin
+        subplot := 3
+        opacity --> .5
+        color --> barrcolor
+        xlabel --> "Time(s)"
+        ylabel --> "z(m)"
+        ylims --> (-ground-2,ground+2)
+        legend --> false
+        rectangle(recend,2,0,ground)
+    end
+end
+
+@recipe function plot(hists::Vector{ModeChangeSimHist}, Δt, barriers, xref, failtime, delaytime)
+    x = Vector{Float64}[]
+    y = Vector{Float64}[]
+    z = Vector{Float64}[]
+    tvec = Vector{Float64}[]
+
+    side, ylower, yupper, ground = barriers[1], barriers[2], barriers[3], barriers[4]
+
+    for hist ∈ hists
+        xyz = [hist.x'[:,[1,2]] -hist.x'[:,3]]
+        #xyz = crashfilter!(xyz, ground, side)
+        xh=xyz[:,1];yh=xyz[:,2];zh=xyz[:,3]
+        push!(x,xh) ; push!(y,yh) ; push!(z,zh)
+        tsim = length(xh)
+        push!(tvec, Δt:Δt:tsim*Δt)
+    end
+
+    tsimmax = length(x[end])
+    recend = tvec[end][end] + 1
+    barrcolor = "lightgray"
+
+    #labels = ["\n  Non-Robust\n" "\n  Unitary-Consensus\n" "\n  Max-Consensus\n" "\n  Reference\n"]
+    #labels = ["Non-Robust" "Unitary-Consensus             " "Feasibility-Guided MPC" "" "" "" "" ""]#
+    labels = ["" "" "" "Rotor Fail" "IMM Delay" "Reference" "" ""]
+    layout := (3,1) #@layout [grid(3, 1) a{0.25w}]#(3,1)
+    xlims --> (Δt/2,tsimmax*Δt+0.01)
+    size --> (700,600)
+    linewidth --> 2
+    xguidefontsize --> 15
+    yguidefontsize --> 15
+    #legend --> false#:outertop
+    #legend_columns --> -1 =#
+    fontfamily --> "Computer Modern"
+    label --> labels
+
+    #= @series begin
+        subplot := 4
+        seriestype := scatter
+        lims --> (0,0.5)
+        legendfontsize --> 7
+        legend --> :left
+        fg_color_legend --> nothing
+        label --> labels
+        mc --> colors
+        frame --> :none
+        #rectangle(recend,-2,0,-side)
+        (-n:-1)',(-n:-1)'#[1,2,3,4]#,[1,2,3,4] 
+    end =#
+
+    # Subplot 1
+    for i in eachindex(hists)
+        @series begin
+            subplot := 1
+            ylims --> [-side,side] + [-1,1]
+            linewidth --> 4
+            tvec[i], x[i]
+        end
+    end
+    @series begin # fail
+        subplot := 1
+        seriestype:= :vline
+        linestyle --> :dashdot
+        color --> :black 
+        [tvec[1][failtime]]
+    end
+    @series begin # delay
+        subplot := 1
+        seriestype:= :vline
+        linestyle --> :dashdotdot
+        color --> :blue
+        [tvec[1][failtime + delaytime]]
+    end
+    @series begin
+        subplot := 1
+        seriestype:= :hline
+        linestyle --> :dash
+        color --> :firebrick
+        [xref[1]]
+    end
+    @series begin
+        subplot := 1
+        opacity --> .5
+        color --> barrcolor
+        rectangle(recend,-2,0,-side)
+    end
+    @series begin
+        subplot := 1
+        opacity --> .5
+        color --> barrcolor
+        ylabel --> "x(m)"
+        ylims --> (-side-1,side+1)
+        #legend --> false
+        #legend --> :outertop
+        legendfontsize --> 10
+        #fg_legend --> :transparent
+        #legend_columns --> -1
+        rectangle(recend,2,0,side)
+    end
+
+    # Subplot 2
+    for i in eachindex(hists)
+        @series begin
+            subplot := 2
+            ylims --> [ylower,yupper] + [-1,1]
+            tvec[i], y[i]
+        end
+    end
+    @series begin # fail
+        subplot := 2
+        seriestype:= :vline
+        linestyle --> :dashdot
+        color --> :black 
+        [tvec[2][failtime]]
+    end
+    @series begin # delay
+        subplot := 2
+        seriestype:= :vline
+        linestyle --> :dashdotdot
+        color --> :blue
+        [tvec[2][failtime + delaytime]]
+    end
+    @series begin
+        subplot := 2
+        seriestype:= :hline
+        linestyle --> :dash
+        color --> :firebrick
+        [xref[2]]
+    end
+    @series begin
+        subplot := 2
+        opacity --> .5
+        color --> barrcolor
+        rectangle(recend,-2,0,ylower)
+    end
+    @series begin
+        subplot := 2
+        opacity --> .5
+        color --> barrcolor
+        ylabel --> "y(m)"
+        ylims --> (ylower-1,yupper+1)
+        legend --> false
+        rectangle(recend,2,0,yupper)
     end
 
     # Subplot 3

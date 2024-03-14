@@ -13,7 +13,7 @@ begin
     side = 6
 
     ylower = 0
-    yupper = 8
+    yupper = 4
 
     # ground = 15
     # side = 8
@@ -36,16 +36,16 @@ begin
 
     num_modes = length(modes)
 
-    nvec = [0.061, 0.040]
+    nvec = [0.061, 0.090]
     models = [MPC.RendezvousModel(nvec[i]) for i in 1:num_modes]
     sys = MPC.BatchDynamics(models; T, Δt, u_bounds)
 
     ns = sys.inner_statedim
     nm = sys.inner_controldim
     x0 = zeros(ns)
-    x0[1:3] .= [0, 7.8, 0]
+    x0[1:3] .= [100, 3.8, 0]
     x_ref = zeros(ns)
-    x_ref[1:3] .= [0, 2.5, 0]
+    x_ref[1:3] .= [0, 0.5, 0]
     #x_ref[1:3] .= [5, -5, 10]
 
     #Qcustom = I(12) * 1.0e-1
@@ -77,7 +77,7 @@ begin
     #plot(unit_hist, lw=2)
     simtime = 40
     # failtime = floor(simtime/8)
-    failtime = 10
+    failtime = 2
 
     failmode = 2
     delaytime = 1
@@ -106,7 +106,8 @@ begin
 
     #savefig(p, "consensus_hist.png")
     hists = [unit_hist, consensus_hist]
-    totalplt = plot(hists, Δt, side, ground, x_ref, Int(failtime), Int(delaytime)) |> display
+    totalplt = plot(hists, Δt, [side, ylower, yupper, ground], 
+                    x_ref, Int(failtime), Int(delaytime)) |> display
     #plot(consensus_hist.consensus) |> display
 end
 begin

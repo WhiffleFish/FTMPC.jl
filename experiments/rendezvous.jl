@@ -9,15 +9,18 @@ using JLD2
 
 function setup(nval)
     ground = 10
-    side = 10
-    γside = 1.0#0.5e-1
-    γground = 1.0#0.5e-1
+    side = 6
+    ylower = 0
+    yupper = 4
+    γside = 0.5e-1
+    γground = 0.5e-1
 
-    constraints = MPC.RendezvousBarrier(h=ground, w=side, l=side, γg = γground, γs = γside)
+    constraints = MPC.RendezvousBarrier(h=ground, w=side, l_lower=ylower, l_upper=yupper,
+                                          γg = γground, γs = γside)
 
     modes = 0:1
     T = 30
-    Δt = 10#0.05
+    Δt = 10
 
     u_bounds = (-0.1, 0.1)
 
@@ -30,12 +33,9 @@ function setup(nval)
     ns = sys.inner_statedim
     nm = sys.inner_controldim
     x0 = zeros(ns)
-    x0[1:3] .= [0, 8, 0]
+    x0[1:3] .= [0, 3.8, 0]
     x_ref = zeros(ns)
-    x_ref[1:3] .= [0, 2, 0]
-    #x_ref[1:3] .= [5, -5, 10]
-
-    #Qcustom = I(12) * 1.0e-1
+    x_ref[1:3] .= [0, 0.5, 0]
 
     Qcustom = I(ns) * 1.0e-1
     Qcustom[1,1] = 50
@@ -43,7 +43,6 @@ function setup(nval)
 
     Qcustom[3,3] = 50
 
-    # Qcustom[3,3] = 1e1
     f = BarrierJuMPFormulator(
         sys,
         Clarabel.Optimizer;
@@ -61,39 +60,46 @@ function setup(nval)
     )
     model = JuMPModel(f, x0)
 
+
     return model, f, x0
 
 end
 
-function run_sim(simtime, failtime, failmode, delaytime, model, f, x0)    
-    unit_planner = MPC.FTMPCPlanner(model, f, 1)
-    unit_sim = Simulator(unit_planner, x0=x0, T=simtime, failure=MPC.FixedFailure(failtime,failmode;delay=delaytime))
-    unit_hist = simulate(unit_sim)
-    return unit_hist
-    #p = plot(unit_hist, Δt, side, ground)
+function run_sim(simtime, failtime, failmode, delaytime, model, f, x0; planner=:unit)    
+    if planner == :unit
+        planner = MPC.FTMPCPlanner(model, f, 1)
+        sim = Simulator(planner, x0=x0, T=simtime, failure=MPC.FixedFailure(failtime,failmode;delay=delaytime))
+        hist = simulate(sim)
+    elseif planner == :consensus
+        planner = MPC.ConsensusSearchPlanner(model, f)
+        sim = Simulator(planner, x0=x0, T=simtime, failure=MPC.FixedFailure(failtime,failmode;delay=delaytime))
+        hist = simulate(sim)
+    end
+    
+    return hist
 end
 
-function run_simulations()
+function run_simulations(;planner_type=:unit)
     simtime = 40
     failtimes = 1:5:simtime
     numfailtimes = length(failtimes)
     failmode = 2
-    ndelays = 5
+    ndelays = 2
     delaytimes = 0:ndelays
-    numnvals = 10
-    meanmotion = 0.056
-    nvals = meanmotion:-0.001:meanmotion-0.001*numnvals
-    histvec = Vector{MPC.ModeChangeSimHist}(undef, numfailtimes*(numnvals+1)*(ndelays+1))
+    numnvals = 2
+    meanmotion = 0.061
+    Δn = 0.01
+    nvals = meanmotion+(numnvals*Δn/2):-Δn:meanmotion-(numnvals*Δn/2)
+    histvec = Vector{MPC.ModeChangeSimHist}(undef, numfailtimes*length(nvals)*(ndelays+1))
     #histvec = Vector{MPC.ModeChangeSimHist}()
     histcount = 1
     for nval in nvals
         for failtime ∈ failtimes
             for delaytime ∈ delaytimes
                 model, f, x0 = setup(nval)
-                histvec[histcount] = run_sim(simtime, failtime, failmode, delaytime, model, f, x0)
+                histvec[histcount] = run_sim(simtime, failtime, failmode, delaytime, model, f, x0; planner=planner_type)
                 if size(histvec[histcount].x,2) < simtime
                     println("n: $nval, failtime: $failtime, delaytime: $delaytime, histcount: $histcount,  - failed")
-                    println("failed")
                 else
                     println("n: $nval, failtime: $failtime, delaytime: $delaytime, histcount: $histcount,  - succeeded")
                 end
@@ -102,13 +108,17 @@ function run_simulations()
         end
     end
 
-    delaytimes = reduce(vcat, collect.([failtime:failtime+2 for failtime ∈ failtimes]))
     return histvec, simtime, nvals, failtimes, ndelays
 end
 
-hists, simtime, nvals, failtimes, ndelays = run_simulations()
+hists, simtime, nvals, failtimes, ndelays = run_simulations(planner_type=:unit)
+hists_con, _, _, _, _ = run_simulations(planner_type=:consensus)
 
-jldsave(joinpath(@__DIR__,"results/rendezvous_threaded.jld2"), hists=hists, simtime=simtime, nvals=nvals, 
+
+jldsave(joinpath(@__DIR__,"results/rendezvous_threaded_unit.jld2"), hists=hists, simtime=simtime, nvals=nvals, 
+                                            failtimes=failtimes, ndelays=ndelays)
+
+jldsave(joinpath(@__DIR__,"results/rendezvous_threaded_consensus.jld2"), hists=hists_con, simtime=simtime, nvals=nvals, 
                                             failtimes=failtimes, ndelays=ndelays)
 
 nothing

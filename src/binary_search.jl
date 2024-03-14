@@ -3,7 +3,7 @@ function binary_search_max(f, isvalid, T)
     _min = 0
     _max = T
     best_val = nothing
-    println("T: ", T)
+    #println("T: ", T)
     while _min < _max
         t = (_min + _max) ÷ 2
         val = f(t)
@@ -14,6 +14,9 @@ function binary_search_max(f, isvalid, T)
         else            # consensus horizon too high
             _max = t - 1
         end
+    end
+    if _max < 0
+        return nothing, nothing
     end
     max_val = f(_max)
     return if isvalid(max_val)
@@ -67,9 +70,10 @@ end
 
 function (b::BinaryConsensusSearch)(t)
     (;model, f) = b
-    println("consensus horizon: ", t)
+    #println("consensus horizon: ", t)
     set_consensus_horizon(model, f, t)
-    @time optimize!(model)
+    optimize!(model)
+    # @time optimize!(model)
     info = OSQPResults(f, model)
     return model, optimizer_action(model, f), info
 end

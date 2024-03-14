@@ -28,7 +28,7 @@ function action_info(p::FTMPCPlanner, x::AbstractVector)
     nx,nu = size(p.f.sys.B)
     u = value.(p.model[:x][nx+1 : nx+p.f.sys.inner_controldim])
     return if termination_status(p.model) ∈ INVALID_STATUSES
-        @warn("No feasible action")
+        #@warn("No feasible action")
         nothing, nothing
     else
         u, OSQPResults(p.f, p.model)
@@ -99,7 +99,6 @@ function action_info(p::ConsensusSearchPlanner, x::AbstractVector)
     
     s = BinaryConsensusSearch(model, f)
     set_initialstate(p, x)
-    @info "Optimizing..."
     res, t = binary_search_max(s, valid_consensus, T-1)
     if isnothing(res)
         #@warn("No feasible action")
