@@ -94,7 +94,6 @@ function run_simulations(;planner_type=:unit)
     Δn = 0.01
     nvals = meanmotion+(numnvals*Δn/2):-Δn:meanmotion-(numnvals*Δn/2)
     histvec = Vector{MPC.ModeChangeSimHist}(undef, numfailtimes*length(nvals)*(ndelays+1))
-    #histvec = Vector{MPC.ModeChangeSimHist}()
     histcount = 1
     Threads.@threads for nval in nvals
         Threads.@threads for failtime ∈ failtimes
