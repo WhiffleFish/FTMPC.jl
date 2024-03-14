@@ -100,9 +100,9 @@ function run_simulations(;planner_type=:unit)
     histvec = Vector{MPC.ModeChangeSimHist}(undef, numfailtimes*length(x0vec)*(ndelays+1))
     #histvec = Vector{MPC.ModeChangeSimHist}()
     histcount = 1
-    Thread.@threads for x0 in x0vec
-        Thread.@threads for failtime ∈ failtimes
-            Thread.@threads for delaytime ∈ delaytimes
+    Threads.@threads for x0 in x0vec
+        Threads.@threads for failtime ∈ failtimes
+            Threads.@threads for delaytime ∈ delaytimes
                 model, f, x0 = setup(x0)
                 histvec[histcount] = run_sim(simtime, failtime, failmode, delaytime, model, f, x0; planner=planner_type)
                 if size(histvec[histcount].x,2) < simtime
