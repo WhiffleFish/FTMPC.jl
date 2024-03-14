@@ -16,3 +16,6 @@ include("second_order_integrator.jl")
 export SecondOrderIntegrator
 
 include("vtol.jl")
+
+include("rendezvous.jl")
+export RendezvousModel

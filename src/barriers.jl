@@ -31,6 +31,7 @@ function linear_constraint_barrier(sys,a,b,γ)
             @. A[section_i, x_idxs] = (1-γ)*a
         end
     end
+    
     ub = fill(γ*b, T*nm)
     lb = fill(-Inf, T*nm)
     return BarrierConstraint(A, lb, ub)
@@ -112,21 +113,28 @@ function JuMPModel(f::BarrierJuMPFormulator, x0)
     A_eq = [I(nx) -B]
     eq_rhs = A*repeat(x0, nm) - Δ_nom
 
-    C = consensus_constraint(sys, T-1)
+    C = sparse(consensus_constraint(sys, T-1))
     consensus_rhs = zeros(size(C,1))
 
     @variable(model, x[1:nx+nu])
-    @constraint(model, DYNAMICS, A_eq*x .== eq_rhs)
+    @constraint(model, DYNAMICS, sparse(A_eq)*x .== sparse(eq_rhs))
+
+    #@constraint(model, FLOOR, x[3:12:nx] .≤ 6.0)
+    #@constraint(model, SIDES_X, -5.0 .≤ x[1:12:nx] .≤ 5.0)
+    #@constraint(model, SIDES_Y, -5.0 .≤ x[2:12:nx] .≤ 5.0)
+    #@warn "typeof C: " typeof(C)
+    #@warn "typeof Abarrier: " typeof(barrier.A)
     @constraint(model, CONSENSUS, C*x[nx+1:end] .== consensus_rhs)
     if u_bounds ≠ (-Inf, Inf)
         @constraint(model, CONTROL, u_lower .≤ x[nx+1:end] .≤ u_upper)
     end
     if !isnothing(barrier)
-        @constraint(model, BARRIER, barrier.A*x .≤ barrier.ub)
+        @constraint(model, BARRIER, sparse(barrier.A)*x .≤ barrier.ub)
     end
 
     @objective(model, Min, 0.5*dot(x, f.P, x) + dot(f.q,x))
-    
+    #@objective(model, Min, 0.0*dot(x, f.P, x) + 0.0*dot(f.q,x))
+
     # Note: Model must be optimized for FULL consensus horizon before setting lower
     # consensus horizons. Otherwise OSQP gets angry about changing sparsity pattens.
     optimize!(model)
@@ -145,11 +153,11 @@ function OSQPResults(f::BarrierJuMPFormulator, model::JuMP.Model)
     Δt = sys.Δt
     nm, T = n_modes(sys), horizon(sys)
     X = value.(model[:x])
-    x = X[1:HEX_X_DIM*nm*T]
-    u = X[HEX_X_DIM*nm*T+1 : end]
+    x = X[1:sys.inner_statedim*nm*T]
+    u = X[sys.inner_statedim*nm*T+1 : end]
 
-    X = unbatch_and_disjoint(x, nm, T, HEX_X_DIM)
-    U = unbatch_and_disjoint(u, nm, T-1, HEX_U_DIM)
+    X = unbatch_and_disjoint(x, nm, T, sys.inner_statedim)
+    U = unbatch_and_disjoint(u, nm, T-1, sys.inner_controldim)
     t = 0.0:Δt:Δt*(T-1)
     return OSQPResults(X,U,t)
 end
@@ -216,16 +224,21 @@ function modified_objective_model(f, ws::AbstractVector)
     consensus_rhs = zeros(size(C,1))
 
     @variable(model, x[1:nx+nu])
-    @constraint(model, DYNAMICS, A_eq*x .== eq_rhs)
-    @constraint(model, CONSENSUS, C*x[nx+1:end] .== consensus_rhs)
+    @constraint(model, DYNAMICS, sparse(A_eq)*x .== eq_rhs)
+    @constraint(model, CONSENSUS, sparse(C)*x[nx+1:end] .== consensus_rhs)
+    #@constraint(model, FLOOR, x[3:12:nx] .≤ 6.0)
+    #@constraint(model, SIDES_X, -5.0 .≤ x[1:12:nx] .≤ 5.0)
+    #@constraint(model, SIDES_Y, -5.0 .≤ x[2:12:nx] .≤ 5.0)
+
     if u_bounds ≠ (-Inf, Inf)
         @constraint(model, CONTROL, u_lower .≤ x[nx+1:end] .≤ u_upper)
     end
     if !isnothing(barrier)
-        @constraint(model, BARRIER, barrier.A*x .≤ barrier.ub)
+        @constraint(model, BARRIER, sparse(barrier.A)*x .≤ barrier.ub)
     end
 
     @objective(model, Min, 0.5*dot(x, P, x) + dot(q,x))
+    #@objective(model, Min, 0.0*dot(x, P, x) + 0.0*dot(q,x))
     
     # Note: Model must be optimized for FULL consensus horizon before setting lower
     # consensus horizons. Otherwise OSQP gets angry about changing sparsity pattens.

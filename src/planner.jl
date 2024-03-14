@@ -26,8 +26,8 @@ function action_info(p::FTMPCPlanner, x::AbstractVector)
     set_initialstate(p, x)
     optimize!(p.model)
     nx,nu = size(p.f.sys.B)
-    u = value.(p.model[:x][nx+1 : nx+HEX_U_DIM])
-    return if any(isnan, u)
+    u = value.(p.model[:x][nx+1 : nx+p.f.sys.inner_controldim])
+    return if termination_status(p.model) ∈ INVALID_STATUSES
         @warn("No feasible action")
         nothing, nothing
     else
@@ -90,7 +90,7 @@ end
 
 function optimizer_action(model, f)
     nx = size(f.sys.B, 1)
-    return value.(model[:x][nx+1 : nx+HEX_U_DIM])
+    return value.(model[:x][nx+1 : nx+f.sys.inner_controldim])
 end
 
 function action_info(p::ConsensusSearchPlanner, x::AbstractVector)
@@ -99,9 +99,10 @@ function action_info(p::ConsensusSearchPlanner, x::AbstractVector)
     
     s = BinaryConsensusSearch(model, f)
     set_initialstate(p, x)
+    @info "Optimizing..."
     res, t = binary_search_max(s, valid_consensus, T-1)
     if isnothing(res)
-        @warn("No feasible action")
+        #@warn("No feasible action")
         return nothing, nothing, nothing
     else
         (m,u,info) = res

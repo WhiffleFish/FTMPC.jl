@@ -3,6 +3,7 @@ function binary_search_max(f, isvalid, T)
     _min = 0
     _max = T
     best_val = nothing
+    println("T: ", T)
     while _min < _max
         t = (_min + _max) ÷ 2
         val = f(t)
@@ -21,6 +22,73 @@ function binary_search_max(f, isvalid, T)
         best_val, best_t
     end
 end
+
+# const VALID_STATUSES = [
+#     OPTIMAL,
+#     LOCALLY_SOLVED,
+#     ALMOST_OPTIMAL,
+#     ALMOST_LOCALLY_SOLVED
+# ]
+
+# const WARN_STATUSES = [
+#     ITERATION_LIMIT,
+#     TIME_LIMIT,
+#     NODE_LIMIT,
+#     SOLUTION_LIMIT,
+#     MEMORY_LIMIT,
+#     OBJECTIVE_LIMIT,
+#     NORM_LIMIT,
+#     OTHER_LIMIT,
+#     MAX_TIME,
+#     MAX_ITERATIONS
+# ]
+
+# const INVALID_STATUSES = [
+#     PRIMAL_INFEASIBLE,
+#     DUAL_INFEASIBLE,
+#     ALMOST_SOLVED,
+#     ALMOST_PRIMAL_INFEASIBLE
+# ]
+
+# const ERROR_STATUSES = [
+#     OPTIMIZE_NOT_CALLED,
+#     NUMERICAL_ERROR,
+#     INVALID_MODEL,
+#     INVALID_OPTION,
+#     INTERRUPTED,
+#     OTHER_ERROR,
+#     INSUFFICIENT_PROGRESS
+# ]
+
+struct BinaryConsensusSearch{F<:BarrierJuMPFormulator}
+    model::JuMP.Model
+    f::F
+end
+
+function (b::BinaryConsensusSearch)(t)
+    (;model, f) = b
+    println("consensus horizon: ", t)
+    set_consensus_horizon(model, f, t)
+    @time optimize!(model)
+    info = OSQPResults(f, model)
+    return model, optimizer_action(model, f), info
+end
+
+function valid_consensus((model,u,info)::Tuple)
+    status = termination_status(model)
+    if status ∈ VALID_STATUSES
+        @assert !any(isnan, u) string(status)
+        return true
+    elseif status ∈ WARN_STATUSES
+        @warn(status)
+        return false # FIXME: ehhhhhh?
+    elseif status ∈ INVALID_STATUSES
+        return false
+    else
+        error(status)
+    end 
+end
+
 
 const VALID_STATUSES = [
     OPTIMAL,
@@ -56,37 +124,6 @@ const ERROR_STATUSES = [
     INTERRUPTED,
     OTHER_ERROR
 ]
-
-struct BinaryConsensusSearch{F<:BarrierJuMPFormulator}
-    model::JuMP.Model
-    f::F
-end
-
-function (b::BinaryConsensusSearch)(t)
-    (;model, f) = b
-    @show t
-    set_consensus_horizon(model, f, t)
-    optimize!(model)
-    info = OSQPResults(f, model)
-    return model, optimizer_action(model, f), info
-end
-
-function valid_consensus((model,u,info)::Tuple)
-    status = termination_status(model)
-    if status ∈ VALID_STATUSES
-        @assert !any(isnan, u) string(status)
-        return true
-    elseif status ∈ WARN_STATUSES
-        @warn(status)
-        return false # FIXME: ehhhhhh?
-    elseif status ∈ INVALID_STATUSES
-        return false
-    else
-        error(status)
-    end 
-end
-
-
 
 #=
 Enum MathOptInterface.TerminationStatusCode:

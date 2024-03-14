@@ -11,6 +11,8 @@ using Random
 using Distributions: pdf, MvNormal
 using JuMP
 using Random
+using Plots
+using Clarabel
 
 include(joinpath("models", "models.jl"))
 
@@ -37,5 +39,7 @@ include("envs.jl")
 # extras
 include("extras.jl")
 export basis, blkdiag
+
+include("plotting.jl")
 
 end

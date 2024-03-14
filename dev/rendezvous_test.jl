@@ -9,8 +9,11 @@ using Clarabel
 default(grid=false, framestyle=:box, fontfamily="Computer Modern", label="")
 
 begin
-    ground = 6
-    side = 1
+    ground = 10
+    side = 6
+
+    ylower = 0
+    yupper = 8
 
     # ground = 15
     # side = 8
@@ -18,31 +21,36 @@ begin
     γside = 0.5e-1
     γground = 0.5e-1
 
-    constraints = MPC.ElevatorShaft(h=ground, w=side, l=side, γg = γground, γs = γside)
+    constraints = MPC.RendezvousBarrier(h=ground, w=side, l_lower=ylower, l_upper=yupper,
+                                          γg = γground, γs = γside)
     #constraints = [MPC.LinearConstraint(-basis(12, 3)*1, ground, γground)]
 
     #constraints = MPC.ElevatorShaft(h=6, γ=1.0)#γ=1e-1)
-    failures = 0:2
-    T = 10
-    Δt = 0.05#0.05
+    modes = 0:1
+    T = 30
+    Δt = 10#0.05
 
     #u_bounds = (-Inf,Inf)
     #u_bounds = (0.1, 20.0)
-    u_bounds = (0.1, 20.0)
+    u_bounds = (-0.1, 0.1)
 
-    nm = length(failures)
+    num_modes = length(modes)
 
-    models = [MPC.HexCTLinearModel(failure) for failure in failures]
+    nvec = [0.061, 0.040]
+    models = [MPC.RendezvousModel(nvec[i]) for i in 1:num_modes]
     sys = MPC.BatchDynamics(models; T, Δt, u_bounds)
 
-    x0 = zeros(12)
-    x_ref = zeros(12)
-    x_ref[1:3] .= [-0.7, 0.7, 5]
+    ns = sys.inner_statedim
+    nm = sys.inner_controldim
+    x0 = zeros(ns)
+    x0[1:3] .= [0, 7.8, 0]
+    x_ref = zeros(ns)
+    x_ref[1:3] .= [0, 2.5, 0]
     #x_ref[1:3] .= [5, -5, 10]
 
     #Qcustom = I(12) * 1.0e-1
 
-    Qcustom = I(12) * 1.0e-1
+    Qcustom = I(ns) * 1.0e-1
     Qcustom[1,1] = 50
     Qcustom[2,2] = 50
 
@@ -54,7 +62,7 @@ begin
         Clarabel.Optimizer;
         x_ref,
         Q=Qcustom,
-        R=I(6)* 1.0e-2,#1e-6,
+        R=I(nm)* 1.0e-2,#1e-6,
         constraints,
         tol_feas = 1e-8,
         tol_infeas_abs = 1e-8,
@@ -67,10 +75,12 @@ begin
     model = JuMPModel(f, x0)
 
     #plot(unit_hist, lw=2)
-    simtime = 80
-    failtime = floor(simtime/4)
+    simtime = 40
+    # failtime = floor(simtime/8)
+    failtime = 10
+
     failmode = 2
-    delaytime = 3
+    delaytime = 1
 end
 
 begin
@@ -79,7 +89,7 @@ begin
 
     unit_sim = Simulator(unit_planner, x0=x0, T=simtime, failure=MPC.FixedFailure(failtime,failmode;delay=delaytime))
     unit_hist = simulate(unit_sim)
-    plot(unit_hist, lw=2)
+    #plot(unit_hist, lw=2)
     p = plot(unit_hist, Δt, side, ground)
 end
 
@@ -91,13 +101,13 @@ begin
     end
     #consensus_hist = simulate(consensus_sim)
     consensus_hist = simcon(consensus_sim)
-    plot(consensus_hist, lw=2)
+    plot(consensus_hist, lw=2, true)
     p = plot(consensus_hist, Δt, side, ground)
 
     #savefig(p, "consensus_hist.png")
     hists = [unit_hist, consensus_hist]
     totalplt = plot(hists, Δt, side, ground, x_ref, Int(failtime), Int(delaytime)) |> display
-    plot(consensus_hist.consensus) |> display
+    #plot(consensus_hist.consensus) |> display
 end
 begin
     animhist = unit_hist

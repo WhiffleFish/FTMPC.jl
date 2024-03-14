@@ -49,17 +49,21 @@ end
 struct FixedFailure
     t::Int
     mode::Int
-    instant_update::Bool
-    FixedFailure(t, mode; instant_update=true) = new(t,mode, instant_update)
+    delay::Int
+    FixedFailure(t, mode; delay=0) = new(t, mode, delay)
 end
 
 function fail!(imm::IMM, planner, t, mode_idx, failure::FixedFailure)
     if t == failure.t
-        if failure.instant_update
-            imm.weights .= 0.0
-            imm.weights[failure.mode] = 1.0
-            modify_objective_weights(planner, imm.weights) 
-        end
+        #@info "--------------------Failure Occured at $t---------------------"
+        imm.weights .= 0.0
+        imm.weights[failure.mode] = 1.0
+        return failure.mode
+    elseif t == failure.t + failure.delay
+        #@info "--------------------Failure Detected at $t---------------------"
+        #imm.weights .= 0.0
+        #imm.weights[failure.mode] = 1.0
+        modify_objective_weights(planner, imm.weights) 
         return failure.mode
     else
         return mode_idx
@@ -117,7 +121,7 @@ function simulate(sim::ModeChangeSimulator)
     info = OSQPResults{StepRangeLen{Float64, Base.TwicePrecision{Float64}, Base.TwicePrecision{Float64}, Int64}}[]
     consensus_hist = Int[]
 
-    prog = Progress(T; enabled=sim.progress)
+    #prog = Progress(T; enabled=sim.progress)
     for t ∈ 1:T
         # FIXME: Set objective weights in sim loop without changing sparsity pattern
         # modify_objective_weights(planner, imm.weights) 
@@ -128,7 +132,7 @@ function simulate(sim::ModeChangeSimulator)
             action_info(planner, x)..., 1
         end
         if isnothing(u)
-            @show x
+            #@show x
             break
         end
         push!(consensus_hist, h_star)
@@ -151,9 +155,10 @@ function simulate(sim::ModeChangeSimulator)
         mode_idx = fail!(imm, planner, t, mode_idx, failure)
         ss = imm.modes[mode_idx]
 
-        next!(prog)
+        #next!(prog)
+        #println("")
     end
-    finish!(prog)
+    #finish!(prog)
 
     return ModeChangeSimHist(
         reduce(hcat, x_hist),
@@ -174,32 +179,4 @@ function max_barrier_violation(sim::Simulator, hist::SimHist)
     f = sim.planner.f
     ub = first(f.barrier.ub)
     return maximum(dot(f.barrier.A[1,1:12],x)-ub for x ∈ eachcol(hist.x))
-end
-
-@recipe function plot(sim::SimHist)
-    layout := (1, 2)
-    @series begin
-        subplot := 1
-        labels --> permutedims(STATE_LABELS[TRANSLATIONAL_STATES])
-        sim.t[1:size(sim.x,2)], trans_states(flip_z(sim.x))'
-    end
-    @series begin
-        subplot := 2
-        labels --> permutedims(["u$i" for i ∈ 1:6])
-        sim.t[1:size(sim.u,2)], sim.u'
-    end
-end
-
-@recipe function plot(sim::ModeChangeSimHist)
-    layout := (1, 2)
-    @series begin
-        subplot := 1
-        labels --> permutedims(STATE_LABELS[TRANSLATIONAL_STATES])
-        sim.t[1:size(sim.x,2)], trans_states(flip_z(sim.x))'
-    end
-    @series begin
-        subplot := 2
-        labels --> permutedims(["u$i" for i ∈ 1:6])
-        sim.t[1:size(sim.u,2)], sim.u'
-    end
 end
