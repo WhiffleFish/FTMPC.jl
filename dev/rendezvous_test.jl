@@ -11,44 +11,32 @@ default(grid=false, framestyle=:box, fontfamily="Computer Modern", label="")
 begin
     ground = 10
     side = 6
-
     ylower = 0
     yupper = 4
-
-    # ground = 15
-    # side = 8
-
     γside = 0.5e-1
     γground = 0.5e-1
 
     constraints = MPC.RendezvousBarrier(h=ground, w=side, l_lower=ylower, l_upper=yupper,
                                           γg = γground, γs = γside)
-    #constraints = [MPC.LinearConstraint(-basis(12, 3)*1, ground, γground)]
 
-    #constraints = MPC.ElevatorShaft(h=6, γ=1.0)#γ=1e-1)
     modes = 0:1
     T = 30
-    Δt = 10#0.05
+    Δt = 10
 
-    #u_bounds = (-Inf,Inf)
-    #u_bounds = (0.1, 20.0)
     u_bounds = (-0.1, 0.1)
 
     num_modes = length(modes)
 
-    nvec = [0.061, 0.090]
+    nvec = [0.061, 0.101]
     models = [MPC.RendezvousModel(nvec[i]) for i in 1:num_modes]
     sys = MPC.BatchDynamics(models; T, Δt, u_bounds)
 
     ns = sys.inner_statedim
     nm = sys.inner_controldim
     x0 = zeros(ns)
-    x0[1:3] .= [100, 3.8, 0]
+    x0[1:3] .= [0, 3.8, 0]
     x_ref = zeros(ns)
     x_ref[1:3] .= [0, 0.5, 0]
-    #x_ref[1:3] .= [5, -5, 10]
-
-    #Qcustom = I(12) * 1.0e-1
 
     Qcustom = I(ns) * 1.0e-1
     Qcustom[1,1] = 50
@@ -56,7 +44,6 @@ begin
 
     Qcustom[3,3] = 50
 
-    # Qcustom[3,3] = 1e1
     f = BarrierJuMPFormulator(
         sys,
         Clarabel.Optimizer;
@@ -69,16 +56,15 @@ begin
         tol_infeas_rel = 1e-8, 
         tol_gap_abs = 1.0e-08,
         tol_gap_rel = 1.0e-08,
+        #iterative_refinement_abstol = 1e-9,
+        #iterative_refinement_reltol = 1e-8,
         verbose = true,
         max_iter= 50_000
     )
     model = JuMPModel(f, x0)
 
-    #plot(unit_hist, lw=2)
     simtime = 40
-    # failtime = floor(simtime/8)
-    failtime = 2
-
+    failtime = 6
     failmode = 2
     delaytime = 1
 end
@@ -96,11 +82,8 @@ end
 begin
     consensus_planner = MPC.ConsensusSearchPlanner(model, f)
     consensus_sim = Simulator(consensus_planner, x0=x0, T=simtime, failure=MPC.FixedFailure(failtime,failmode;delay=delaytime))
-    function simcon(consensus_sim)
-        return simulate(consensus_sim)
-    end
-    #consensus_hist = simulate(consensus_sim)
-    consensus_hist = simcon(consensus_sim)
+    consensus_hist = simulate(consensus_sim)
+    #consensus_hist = simcon(consensus_sim)
     plot(consensus_hist, lw=2, true)
     p = plot(consensus_hist, Δt, side, ground)
 
