@@ -17,7 +17,11 @@ for n in nvals
     for ft in failtimes
         for dt in dlytimes
             #println("n: $n, failtime: $ft, delaytime: $dt, histcount: $histcnt")
-            push!(df_unit, (n, ft, dt, size(hists_unit[histcnt].x, 2) == simtime))
+            if isassigned(hists_unit, histcnt)
+                push!(df_unit, (n, ft, dt, size(hists_unit[histcnt].x, 2) == simtime))
+            end
+
+            #push!(df_unit, (n, ft, dt, size(hists_unit[histcnt].x, 2) == simtime))
             push!(df_consensus, (n, ft, dt, size(hists_consensus[histcnt].x, 2) == simtime))
             histcnt += 1
         end

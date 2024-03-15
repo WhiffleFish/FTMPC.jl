@@ -35,6 +35,26 @@ function action_info(p::FTMPCPlanner, x::AbstractVector)
     end
 end
 
+function action_info(p::FTMPCPlanner, x::AbstractVector, ws::AbstractVector)
+    set_initialstate(p, x)
+    optimize!(p.model)
+    nx,nu = size(p.f.sys.B)
+    
+    if p.consensus_horizon == 0
+        idx = findmax(ws)[2]
+        ctrl_idx = nx+1+((idx-1)*p.f.sys.inner_controldim) : nx+p.f.sys.inner_controldim+((idx-1)*p.f.sys.inner_controldim)
+        u = value.(p.model[:x][ctrl_idx])
+    else
+        u = value.(p.model[:x][nx+1 : nx+p.f.sys.inner_controldim])
+    end
+    return if termination_status(p.model) ∈ INVALID_STATUSES
+        #@warn("No feasible action")
+        nothing, nothing
+    else
+        u, OSQPResults(p.f, p.model)
+    end
+end
+
 ##
 
 mutable struct ConsensusSearchPlanner{F<:BarrierJuMPFormulator}

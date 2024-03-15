@@ -73,15 +73,12 @@ end
 
 function run_simulations(;planner_type=:unit)
     simtime = 40
-    failtimes = 1:5:simtime
+    Δfailtime = 10
+    failtimes = 1:Δfailtime:simtime
     numfailtimes = length(failtimes)
     failmode = 2
     ndelays = 2
     delaytimes = 0:ndelays
-    numnvals = 2
-    meanmotion = 0.061
-    Δn = 0.01
-    nvals = meanmotion+(numnvals*Δn/2):-Δn:meanmotion-(numnvals*Δn/2)
 
     x0 = zeros(12)
     pos_sparsity = 3
@@ -96,6 +93,7 @@ function run_simulations(;planner_type=:unit)
             push!(x0vec, new_x0)
         end
     end
+    pos2d = [x[1:2] for x in x0vec]
 
     histvec = Vector{MPC.ModeChangeSimHist}(undef, numfailtimes*length(x0vec)*(ndelays+1))
     #histvec = Vector{MPC.ModeChangeSimHist}()
@@ -115,17 +113,16 @@ function run_simulations(;planner_type=:unit)
         end
     end
 
-    return histvec, simtime, nvals, failtimes, ndelays
+    return histvec, simtime, pos2d, failtimes, ndelays
 end
 
-hists, simtime, nvals, failtimes, ndelays = run_simulations(planner_type=:unit)
-hists_con, _, _, _, _ = run_simulations(planner_type=:consensus)
+hists, simtime, pos2d, failtimes, ndelays = run_simulations(planner_type=:unit)
+#hists_con, _, _, _, _ = run_simulations(planner_type=:consensus)
 
 
-jldsave(joinpath(@__DIR__,"results/hex_threaded_unit.jld2"), hists=hists, simtime=simtime, nvals=nvals, 
+jldsave(joinpath(@__DIR__,"results/hex_threaded_unit.jld2"), hists=hists, simtime=simtime, pos2d=pos2d, 
                                             failtimes=failtimes, ndelays=ndelays)
 
-jldsave(joinpath(@__DIR__,"results/hex_threaded_consensus.jld2"), hists=hists_con, simtime=simtime, nvals=nvals, 
-                                            failtimes=failtimes, ndelays=ndelays)
-
+#jldsave(joinpath(@__DIR__,"results/hex_threaded_consensus.jld2"), hists=hists_con, simtime=simtime, pos2d=pos2d, 
+#                                            failtimes=failtimes, ndelays=ndelays)
 nothing

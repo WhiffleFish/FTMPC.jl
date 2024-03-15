@@ -70,6 +70,14 @@ function run_sim(simtime, failtime, failmode, delaytime, model, f, x0; planner=:
         planner = MPC.FTMPCPlanner(model, f, 1)
         sim = Simulator(planner, x0=x0, T=simtime, failure=MPC.FixedFailure(failtime,failmode;delay=delaytime))
         hist = simulate(sim)
+    elseif planner == :max
+        planner = MPC.FTMPCPlanner(model, f, f.sys.T-1)
+        sim = Simulator(planner, x0=x0, T=simtime, failure=MPC.FixedFailure(failtime,failmode;delay=delaytime))
+        hist = simulate(sim)
+    elseif planner == :nonrobust
+        planner = MPC.FTMPCPlanner(model, f, 0)
+        sim = Simulator(planner, x0=x0, T=simtime, failure=MPC.FixedFailure(failtime,failmode;delay=delaytime))
+        hist = simulate(sim)
     elseif planner == :consensus
         planner = MPC.ConsensusSearchPlanner(model, f)
         sim = Simulator(planner, x0=x0, T=simtime, failure=MPC.FixedFailure(failtime,failmode;delay=delaytime))
@@ -111,13 +119,19 @@ function run_simulations(;planner_type=:unit)
 end
 
 hists, simtime, nvals, failtimes, ndelays = run_simulations(planner_type=:unit)
+hists_max, _, _, _, _ = run_simulations(planner_type=:max)
+hists_nonrobust, _, _, _, _ = run_simulations(planner_type=:nonrobust)
 hists_con, _, _, _, _ = run_simulations(planner_type=:consensus)
 
 
 jldsave(joinpath(@__DIR__,"results/rendezvous_threaded_unit.jld2"), hists=hists, simtime=simtime, nvals=nvals, 
                                             failtimes=failtimes, ndelays=ndelays)
+            
+jldsave(joinpath(@__DIR__,"results/rendezvous_threaded_max.jld2"), hists=hists_max)
 
-jldsave(joinpath(@__DIR__,"results/rendezvous_threaded_consensus.jld2"), hists=hists_con, simtime=simtime, nvals=nvals, 
-                                            failtimes=failtimes, ndelays=ndelays)
+jldsave(joinpath(@__DIR__,"results/rendezvous_threaded_nonrobust.jld2"), hists=hists_nonrobust)
+
+jldsave(joinpath(@__DIR__,"results/rendezvous_threaded_consensus.jld2"), hists=hists_con)
+
 
 nothing

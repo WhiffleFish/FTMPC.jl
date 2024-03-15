@@ -129,7 +129,7 @@ function simulate(sim::ModeChangeSimulator)
         u,_info,h_star = if planner isa ConsensusSearchPlanner
             action_info(planner, x)
         elseif planner isa FTMPCPlanner
-            action_info(planner, x)..., 1
+            action_info(planner, x, imm.weights)..., 1
         end
         if isnothing(u)
             #@show x

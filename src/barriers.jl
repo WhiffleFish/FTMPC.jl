@@ -118,12 +118,6 @@ function JuMPModel(f::BarrierJuMPFormulator, x0)
 
     @variable(model, x[1:nx+nu])
     @constraint(model, DYNAMICS, sparse(A_eq)*x .== sparse(eq_rhs))
-
-    #@constraint(model, FLOOR, x[3:12:nx] .≤ 6.0)
-    #@constraint(model, SIDES_X, -5.0 .≤ x[1:12:nx] .≤ 5.0)
-    #@constraint(model, SIDES_Y, -5.0 .≤ x[2:12:nx] .≤ 5.0)
-    #@warn "typeof C: " typeof(C)
-    #@warn "typeof Abarrier: " typeof(barrier.A)
     @constraint(model, CONSENSUS, C*x[nx+1:end] .== consensus_rhs)
     if u_bounds ≠ (-Inf, Inf)
         @constraint(model, CONTROL, u_lower .≤ x[nx+1:end] .≤ u_upper)
@@ -133,7 +127,6 @@ function JuMPModel(f::BarrierJuMPFormulator, x0)
     end
 
     @objective(model, Min, 0.5*dot(x, f.P, x) + dot(f.q,x))
-    #@objective(model, Min, 0.0*dot(x, f.P, x) + 0.0*dot(f.q,x))
 
     # Note: Model must be optimized for FULL consensus horizon before setting lower
     # consensus horizons. Otherwise OSQP gets angry about changing sparsity pattens.
@@ -226,9 +219,6 @@ function modified_objective_model(f, ws::AbstractVector)
     @variable(model, x[1:nx+nu])
     @constraint(model, DYNAMICS, sparse(A_eq)*x .== eq_rhs)
     @constraint(model, CONSENSUS, sparse(C)*x[nx+1:end] .== consensus_rhs)
-    #@constraint(model, FLOOR, x[3:12:nx] .≤ 6.0)
-    #@constraint(model, SIDES_X, -5.0 .≤ x[1:12:nx] .≤ 5.0)
-    #@constraint(model, SIDES_Y, -5.0 .≤ x[2:12:nx] .≤ 5.0)
 
     if u_bounds ≠ (-Inf, Inf)
         @constraint(model, CONTROL, u_lower .≤ x[nx+1:end] .≤ u_upper)
@@ -238,7 +228,6 @@ function modified_objective_model(f, ws::AbstractVector)
     end
 
     @objective(model, Min, 0.5*dot(x, P, x) + dot(q,x))
-    #@objective(model, Min, 0.0*dot(x, P, x) + 0.0*dot(q,x))
     
     # Note: Model must be optimized for FULL consensus horizon before setting lower
     # consensus horizons. Otherwise OSQP gets angry about changing sparsity pattens.

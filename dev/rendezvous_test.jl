@@ -34,9 +34,9 @@ begin
     ns = sys.inner_statedim
     nm = sys.inner_controldim
     x0 = zeros(ns)
-    x0[1:3] .= [0, 3.8, 0]
+    x0[1:3] .= [0.01, 3.8, 0]
     x_ref = zeros(ns)
-    x_ref[1:3] .= [0, 0.5, 0]
+    x_ref[1:3] .= [2, 0.5, 0]
 
     Qcustom = I(ns) * 1.0e-1
     Qcustom[1,1] = 50
@@ -58,18 +58,18 @@ begin
         tol_gap_rel = 1.0e-08,
         #iterative_refinement_abstol = 1e-9,
         #iterative_refinement_reltol = 1e-8,
-        verbose = true,
+        verbose = false,
         max_iter= 50_000
     )
     model = JuMPModel(f, x0)
 
     simtime = 40
-    failtime = 6
+    failtime = 3
     failmode = 2
     delaytime = 1
 end
 
-begin
+begin "Unit"
     unit_planner = MPC.FTMPCPlanner(model, f, 1)
     #a, info = MPC.action_info(unit_planner, rand(12)*1e-2)
 
@@ -79,16 +79,22 @@ begin
     p = plot(unit_hist, Δt, side, ground)
 end
 
-begin
+begin "Nonrobust"
+    nonrobust_planner = MPC.FTMPCPlanner(model, f, 0)
+    nonrobust_sim = Simulator(nonrobust_planner, x0=x0, T=simtime, failure=MPC.FixedFailure(failtime,failmode;delay=delaytime))
+    nonrobust_hist = simulate(nonrobust_sim)
+    p = plot(nonrobust_hist, Δt, side, ground)
+end
+
+begin "Consensus"
     consensus_planner = MPC.ConsensusSearchPlanner(model, f)
     consensus_sim = Simulator(consensus_planner, x0=x0, T=simtime, failure=MPC.FixedFailure(failtime,failmode;delay=delaytime))
     consensus_hist = simulate(consensus_sim)
     #consensus_hist = simcon(consensus_sim)
-    plot(consensus_hist, lw=2, true)
-    p = plot(consensus_hist, Δt, side, ground)
+    #plot(consensus_hist, lw=2, true)
+    #p = plot(consensus_hist, Δt, side, ground)
 
-    #savefig(p, "consensus_hist.png")
-    hists = [unit_hist, consensus_hist]
+    hists = [consensus_hist, unit_hist, nonrobust_hist]
     totalplt = plot(hists, Δt, [side, ylower, yupper, ground], 
                     x_ref, Int(failtime), Int(delaytime)) |> display
     #plot(consensus_hist.consensus) |> display

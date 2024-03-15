@@ -327,18 +327,19 @@ end
         xh=xyz[:,1];yh=xyz[:,2];zh=xyz[:,3]
         push!(x,xh) ; push!(y,yh) ; push!(z,zh)
         tsim = length(xh)
-        push!(tvec, Δt:Δt:tsim*Δt)
+        push!(tvec, 0.0:Δt:tsim*Δt-Δt)
     end
-
-    tsimmax = length(x[end])
-    recend = tvec[end][end] + 1
+    tmax_ind = findmax([length(x[i]) for i in eachindex(hists)])[2]
+    tmax = tvec[tmax_ind]
+    tsimmax = length(x[tmax_ind])
+    recend = tmax[end] + 1
     barrcolor = "lightgray"
 
     #labels = ["\n  Non-Robust\n" "\n  Unitary-Consensus\n" "\n  Max-Consensus\n" "\n  Reference\n"]
     #labels = ["Non-Robust" "Unitary-Consensus             " "Feasibility-Guided MPC" "" "" "" "" ""]#
     labels = ["" "" "" "Rotor Fail" "IMM Delay" "Reference" "" ""]
     layout := (3,1) #@layout [grid(3, 1) a{0.25w}]#(3,1)
-    xlims --> (Δt/2,tsimmax*Δt+0.01)
+    xlims --> (0.0,tsimmax*Δt-Δt)
     size --> (700,600)
     linewidth --> 2
     xguidefontsize --> 15
@@ -376,14 +377,14 @@ end
         seriestype:= :vline
         linestyle --> :dashdot
         color --> :black 
-        [tvec[1][failtime]]
+        [tmax[failtime]]
     end
     @series begin # delay
         subplot := 1
         seriestype:= :vline
         linestyle --> :dashdotdot
         color --> :blue
-        [tvec[1][failtime + delaytime]]
+        [tmax[failtime + delaytime]]
     end
     @series begin
         subplot := 1
@@ -425,14 +426,14 @@ end
         seriestype:= :vline
         linestyle --> :dashdot
         color --> :black 
-        [tvec[2][failtime]]
+        [tmax[failtime]]
     end
     @series begin # delay
         subplot := 2
         seriestype:= :vline
         linestyle --> :dashdotdot
         color --> :blue
-        [tvec[2][failtime + delaytime]]
+        [tmax[failtime + delaytime]]
     end
     @series begin
         subplot := 2
@@ -471,14 +472,14 @@ end
         seriestype:= :vline
         linestyle --> :dashdot
         color --> :black 
-        [tvec[1][failtime]]
+        [tmax[failtime]]
     end
     @series begin # delay
         subplot := 3
         seriestype:= :vline
-        linestyle --> :dash
+        linestyle --> :dashdotdot
         color --> :blue
-        [tvec[1][failtime + delaytime]]
+        [tmax[failtime + delaytime]]
     end
     @series begin
         subplot := 3

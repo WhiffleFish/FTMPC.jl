@@ -73,6 +73,14 @@ function run_sim(simtime, failtime, failmode, delaytime, model, f, x0; planner=:
         planner = MPC.FTMPCPlanner(model, f, 1)
         sim = Simulator(planner, x0=x0, T=simtime, failure=MPC.FixedFailure(failtime,failmode;delay=delaytime))
         hist = simulate(sim)
+    elseif planner == :max
+        planner = MPC.FTMPCPlanner(model, f, f.sys.T-1)
+        sim = Simulator(planner, x0=x0, T=simtime, failure=MPC.FixedFailure(failtime,failmode;delay=delaytime))
+        hist = simulate(sim)
+    elseif planner == :nonrobust
+        planner = MPC.FTMPCPlanner(model, f, 0)
+        sim = Simulator(planner, x0=x0, T=simtime, failure=MPC.FixedFailure(failtime,failmode;delay=delaytime))
+        hist = simulate(sim)
     elseif planner == :consensus
         planner = MPC.ConsensusSearchPlanner(model, f)
         sim = Simulator(planner, x0=x0, T=simtime, failure=MPC.FixedFailure(failtime,failmode;delay=delaytime))
@@ -92,7 +100,7 @@ function run_simulations(;planner_type=:unit)
     numnvals = 10
     meanmotion = 0.061
     Δn = 0.01
-    nvals = meanmotion+(numnvals*Δn/2):-Δn:meanmotion-(numnvals*Δn/2)
+    nvals = meanmotion+0.01:-Δn:meanmotion-(numnvals*Δn/2)
     histvec = Vector{MPC.ModeChangeSimHist}(undef, numfailtimes*length(nvals)*(ndelays+1))
     histcount = 1
     Threads.@threads for nval in nvals
@@ -100,11 +108,6 @@ function run_simulations(;planner_type=:unit)
             Threads.@threads for delaytime ∈ delaytimes
                 model, f, x0 = setup(nval)
                 histvec[histcount] = run_sim(simtime, failtime, failmode, delaytime, model, f, x0; planner=planner_type)
-                #if size(histvec[histcount].x,2) < simtime
-                #    println("n: $nval, failtime: $failtime, delaytime: $delaytime, histcount: $histcount,  - failed")
-                #else
-                #    println("n: $nval, failtime: $failtime, delaytime: $delaytime, histcount: $histcount,  - succeeded")
-                #end
                 histcount += 1
             end
         end
@@ -114,13 +117,18 @@ function run_simulations(;planner_type=:unit)
 end
 
 hists, simtime, nvals, failtimes, ndelays = run_simulations(planner_type=:unit)
+hists_max, _, _, _, _ = run_simulations(planner_type=:max)
+hists_nonrobust, _, _, _, _ = run_simulations(planner_type=:nonrobust)
 hists_con, _, _, _, _ = run_simulations(planner_type=:consensus)
 
 
 jldsave(joinpath(@__DIR__,"results/rendezvous_threaded_unit.jld2"), hists=hists, simtime=simtime, nvals=nvals, 
                                             failtimes=failtimes, ndelays=ndelays)
+            
+jldsave(joinpath(@__DIR__,"results/rendezvous_threaded_max.jld2"), hists=hists_max)
 
-jldsave(joinpath(@__DIR__,"results/rendezvous_threaded_consensus.jld2"), hists=hists_con, simtime=simtime, nvals=nvals, 
-                                            failtimes=failtimes, ndelays=ndelays)
+jldsave(joinpath(@__DIR__,"results/rendezvous_threaded_nonrobust.jld2"), hists=hists_nonrobust)
+
+jldsave(joinpath(@__DIR__,"results/rendezvous_threaded_consensus.jld2"), hists=hists_con)
 
 nothing
