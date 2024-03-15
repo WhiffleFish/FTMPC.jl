@@ -131,8 +131,15 @@ function simulate(sim::ModeChangeSimulator)
         elseif planner isa FTMPCPlanner
             action_info(planner, x, imm.weights)..., 1
         end
-        if isnothing(u)
+        if isnothing(u) && isempty(mode_hist)
             #@show x
+            push!(consensus_hist, 0)
+            push!(u_hist, zeros(planner.f.sys.inner_controldim))
+            push!(mode_hist, mode_idx)
+            push!(imm_state_hist, copy(imm.weights))
+            push!(info, OSQPResults(planner.f, planner.model))
+            break
+        elseif isnothing(u)
             break
         end
         push!(consensus_hist, h_star)
