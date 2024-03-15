@@ -6,7 +6,6 @@ using JuMP
 using OSQP
 using LinearAlgebra
 using Clarabel
-using DataFrames
 using JLD2
 using Pkg
 
