@@ -55,7 +55,7 @@ function setup(x0)
     )
     model = JuMPModel(f, x0)
 
-    return model, f, x0
+    return model, f, x0, x_ref
 
 end
 
@@ -111,17 +111,19 @@ function run_simulations(;planner_type=:unit)
     Threads.@threads for x0 in x0vec
         Threads.@threads for failtime ∈ failtimes
             Threads.@threads for delaytime ∈ delaytimes
-                model, f, x0 = setup(x0)
+                model, f, x0, _ = setup(x0)
                 histvec[histcount] = run_sim(simtime, failtime, failmode, delaytime, model, f, x0; planner=planner_type)
                 histcount += 1
             end
         end
     end
 
-    return histvec, simtime, pos2d, failtimes, ndelays
+    _, _, _, x_ref = setup(x0vec[1])
+
+    return histvec, simtime, pos2d, failtimes, ndelays, x_ref
 end
 
-hists, simtime, pos2d, failtimes, ndelays = run_simulations(planner_type=:unit)
+hists, simtime, pos2d, failtimes, ndelays, x_ref = run_simulations(planner_type=:unit)
 hists_max, _, _, _, _ = run_simulations(planner_type=:max)
 hists_nonrobust, _, _, _, _ = run_simulations(planner_type=:nonrobust)
 hists_con, _, _, _, _ = run_simulations(planner_type=:consensus)
@@ -129,7 +131,7 @@ hists_con, _, _, _, _ = run_simulations(planner_type=:consensus)
 
 
 jldsave(joinpath(@__DIR__,"results/hex_threaded_unit.jld2"), hists=hists, simtime=simtime, pos2d=pos2d, 
-                                            failtimes=failtimes, ndelays=ndelays)
+                                            failtimes=failtimes, ndelays=ndelays, x_ref=x_ref)
 
 jldsave(joinpath(@__DIR__,"results/hex_threaded_max.jld2"), hists=hists_max)
 

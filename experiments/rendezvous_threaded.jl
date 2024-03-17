@@ -63,7 +63,7 @@ function setup(nval)
     model = JuMPModel(f, x0)
 
 
-    return model, f, x0
+    return model, f, x0, x_ref
 
 end
 
@@ -98,31 +98,33 @@ function run_simulations(;planner_type=:unit)
     delaytimes = 0:ndelays
     numnvals = 10
     meanmotion = 0.061
-    Δn = 0.01
-    nvals = meanmotion+0.01:-Δn:meanmotion-(numnvals*Δn/2)
+    Δn = 0.005
+    nvals = meanmotion:-Δn:meanmotion-(numnvals*Δn/2)
     histvec = Vector{MPC.ModeChangeSimHist}(undef, numfailtimes*length(nvals)*(ndelays+1))
     histcount = 1
     Threads.@threads for nval in nvals
         Threads.@threads for failtime ∈ failtimes
             Threads.@threads for delaytime ∈ delaytimes
-                model, f, x0 = setup(nval)
+                model, f, x0, _ = setup(nval)
                 histvec[histcount] = run_sim(simtime, failtime, failmode, delaytime, model, f, x0; planner=planner_type)
                 histcount += 1
             end
         end
     end
 
-    return histvec, simtime, nvals, failtimes, ndelays
+    _, _, _, x_ref = setup(nvals[1])
+
+    return histvec, simtime, nvals, failtimes, ndelays, x_ref
 end
 
-hists, simtime, nvals, failtimes, ndelays = run_simulations(planner_type=:unit)
+hists, simtime, nvals, failtimes, ndelays, x_ref = run_simulations(planner_type=:unit)
 hists_max, _, _, _, _ = run_simulations(planner_type=:max)
 hists_nonrobust, _, _, _, _ = run_simulations(planner_type=:nonrobust)
 hists_con, _, _, _, _ = run_simulations(planner_type=:consensus)
 
 
 jldsave(joinpath(@__DIR__,"results/rendezvous_threaded_unit.jld2"), hists=hists, simtime=simtime, nvals=nvals, 
-                                            failtimes=failtimes, ndelays=ndelays)
+                                            failtimes=failtimes, ndelays=ndelays, x_ref=x_ref)
             
 jldsave(joinpath(@__DIR__,"results/rendezvous_threaded_max.jld2"), hists=hists_max)
 

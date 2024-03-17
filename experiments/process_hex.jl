@@ -1,5 +1,23 @@
 using DataFrames
 using JLD2
+using Statistics
+
+function process_costs(hist, x_ref)
+    costs = zeros(size(hist.x)[2])
+    for i in 1:size(hist.x)[2]
+        costs[i] = norm(hist.x[:,i]-x_ref, 2)
+    end
+    return costs
+end
+
+function process_costs(hists::AbstractArray, x_ref)
+    println("Processing costs")
+    costs = zeros(length(hists))
+    for i in 1:length(hists)
+        costs[i] = last(process_costs(hists[i], x_ref))
+    end
+    return costs
+end
 
 hists_unit = load(joinpath(@__DIR__, "results/hex_threaded_unit.jld2"), "hists")
 hists_max = load(joinpath(@__DIR__, "results/hex_threaded_max.jld2"), "hists")
@@ -10,11 +28,12 @@ simtime = load(joinpath(@__DIR__, "results/hex_threaded_unit.jld2"), "simtime")
 pos2d = load(joinpath(@__DIR__, "results/hex_threaded_unit.jld2"), "pos2d")
 failtimes = load(joinpath(@__DIR__, "results/hex_threaded_unit.jld2"), "failtimes")
 ndelays = load(joinpath(@__DIR__, "results/hex_threaded_unit.jld2"), "ndelays")
+x_ref = load(joinpath(@__DIR__, "results/hex_threaded_unit.jld2"), "x_ref")
 
-df_unit = DataFrame(nval = Float64[], failtime = Int[], delaytime = Int[], result = Bool[])
-df_max = DataFrame(nval = Float64[], failtime = Int[], delaytime = Int[], result = Bool[])
-df_nonrobust = DataFrame(nval = Float64[], failtime = Int[], delaytime = Int[], result = Bool[])
-df_consensus = DataFrame(nval = Float64[], failtime = Int[], delaytime = Int[], result = Bool[])
+df_unit = DataFrame(pos2d = Vector{Float64}[], failtime = Int[], delaytime = Int[], result = Bool[])
+df_max = DataFrame(pos2d = Vector{Float64}[], failtime = Int[], delaytime = Int[], result = Bool[])
+df_nonrobust = DataFrame(pos2d = Vector{Float64}[], failtime = Int[], delaytime = Int[], result = Bool[])
+df_consensus = DataFrame(pos2d = Vector{Float64}[], failtime = Int[], delaytime = Int[], result = Bool[])
 
 histcnt = 1
 dlytimes = 0:ndelays
@@ -47,7 +66,9 @@ for pos in pos2d
     end
 end
 
-println("Unit planner success (%): ", sum(df_unit[:,end])/length(df_unit[:,end]))
-println("Max planner success (%): ", sum(df_max[:,end])/length(df_max[:,end]))
-println("Nonrobust planner success (%): ", sum(df_nonrobust[:,end])/length(df_nonrobust[:,end]))
-println("Consensus planner success (%): ", sum(df_consensus[:,end])/length(df_consensus[:,end]))
+println("TOTAL TRIALS: ", length(df_unit[:,end]))
+println("-------------------------------------------------------")
+println("Unit planner successes: ", sum(df_unit[:,end])," | success (%): ", sum(df_unit[:,end])/length(df_unit[:,end]), " | final cost avg: ", mean(process_costs(hists_unit, x_ref)))
+println("Max planner successes: ", sum(df_max[:,end])," | success (%): ", sum(df_max[:,end])/length(df_max[:,end]), " | final cost avg: ", mean(process_costs(hists_max, x_ref)))
+println("Nonrobust planner successes: ", sum(df_nonrobust[:,end])," | success (%): ", sum(df_nonrobust[:,end])/length(df_nonrobust[:,end]), " | final cost avg: ", mean(process_costs(hists_nonrobust, x_ref)))
+println("Consensus planner successes: ", sum(df_consensus[:,end])," | success (%): ", sum(df_consensus[:,end])/length(df_consensus[:,end]), " | final cost avg: ", mean(process_costs(hists_consensus, x_ref)))
