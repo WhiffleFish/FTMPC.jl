@@ -49,7 +49,11 @@ function action_info(p::FTMPCPlanner, x::AbstractVector, ws::AbstractVector)
     end
     return if termination_status(p.model) ∈ INVALID_STATUSES
         #@warn("No feasible action")
-        nothing, nothing
+        idx = findmax(ws)[2]
+        ctrl_idx = nx+1+((idx-1)*p.f.sys.inner_controldim) : nx+p.f.sys.inner_controldim+((idx-1)*p.f.sys.inner_controldim)
+        u = value.(p.model[:x][ctrl_idx])
+
+        u, OSQPResults(p.f, p.model)
     else
         u, OSQPResults(p.f, p.model)
     end

@@ -139,6 +139,7 @@ struct OSQPResults{T}
     X::Vector{Matrix{Float64}}
     U::Vector{Matrix{Float64}}
     t::T
+    feas::Bool
 end
 
 function OSQPResults(f::BarrierJuMPFormulator, model::JuMP.Model)
@@ -152,13 +153,13 @@ function OSQPResults(f::BarrierJuMPFormulator, model::JuMP.Model)
     X = unbatch_and_disjoint(x, nm, T, sys.inner_statedim)
     U = unbatch_and_disjoint(u, nm, T-1, sys.inner_controldim)
     t = 0.0:Δt:Δt*(T-1)
-    return OSQPResults(X,U,t)
+    return OSQPResults(X,U,t,termination_status(model) ∉ INVALID_STATUSES)
 end
 
 to_vec(v::AbstractVector) = v
 to_vec(v) = [v]
 
-Base.getindex(res::OSQPResults, i) = OSQPResults(to_vec(res.X[i]),to_vec(res.U[i]),res.t)
+Base.getindex(res::OSQPResults, i) = OSQPResults(to_vec(res.X[i]),to_vec(res.U[i]),res.t,res.feas)
 
 @recipe function plot(res::OSQPResults)
     N = length(res.X)
