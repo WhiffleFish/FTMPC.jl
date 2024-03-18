@@ -61,7 +61,7 @@ begin
         tol_infeas_rel = 1e-8, 
         tol_gap_abs = 1.0e-08,
         tol_gap_rel = 1.0e-08,
-        verbose = true,
+        verbose = false,
         max_iter= 50_000
     )
     model = JuMPModel(f, x0)
@@ -73,7 +73,7 @@ begin
     delaytime = 3
 end
 
-begin
+begin "Unit"
     unit_planner = MPC.FTMPCPlanner(model, f, 1)
     #a, info = MPC.action_info(unit_planner, rand(12)*1e-2)
 
@@ -83,16 +83,32 @@ begin
     p = plot(unit_hist, Δt, side, ground)
 end
 
-begin
+begin "Full"
+    full_planner = MPC.FTMPCPlanner(model, f, T-1)
+    full_sim = Simulator(full_planner, x0=x0, T=simtime, failure=MPC.FixedFailure(failtime,failmode;delay=delaytime))
+    full_hist = simulate(full_sim)
+    #plot(full_hist, lw=2)
+    p = plot(full_hist, Δt, side, ground)
+end
+
+begin "Nonrobust"
+    nonrobust_planner = MPC.FTMPCPlanner(model, f, 0)
+    nonrobust_sim = Simulator(nonrobust_planner, x0=x0, T=simtime, failure=MPC.FixedFailure(failtime,failmode;delay=delaytime))
+    nonrobust_hist = simulate(nonrobust_sim)
+    p = plot(nonrobust_hist, Δt, side, ground)
+end
+
+begin "Consensus"
     consensus_planner = MPC.ConsensusSearchPlanner(model, f)
     consensus_sim = Simulator(consensus_planner, x0=x0, T=simtime, failure=MPC.FixedFailure(failtime,failmode;delay=delaytime))
     consensus_hist = simulate(consensus_sim)
     plot(consensus_hist, lw=2)
     p = plot(consensus_hist, Δt, side, ground)
 
-    hists = [unit_hist, consensus_hist]
+    hists = [consensus_hist, unit_hist, nonrobust_hist, full_hist]
+    x_ref[3] = -x_ref[3]
     totalplt = plot(hists, Δt, side, ground, x_ref, Int(failtime), Int(delaytime)) |> display
-    plot(consensus_hist.consensus) |> display
+    #plot(consensus_hist.consensus) |> display
 end
 begin
     animhist = unit_hist

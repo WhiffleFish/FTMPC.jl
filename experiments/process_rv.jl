@@ -1,6 +1,30 @@
 using DataFrames
 using JLD2
 using Statistics
+using StatsPlots
+
+function plot_failures(df, title)
+    df_grouped = groupby(df, [:nval, :result])
+    agg_df = combine(df_grouped, nrow => :count)
+    groupedbar(agg_df.nval, agg_df.count, group=agg_df.result, 
+                xlabel="X Value", ylabel="Count", bar_width=0.01, 
+                legend=:outertopright, title=title)
+end
+
+function plot_failures(dfs::Vector{DataFrame}, titles)
+    bars = []
+    for (i,df) in enumerate(dfs)
+        df_grouped = groupby(df, [:nval, :result])
+        agg_df = combine(df_grouped, nrow => :count)
+        push!(bars, groupedbar(agg_df.nval, agg_df.count, group=agg_df.result, 
+                    xlabel="X Value", ylabel="Count", bar_width=0.01, 
+                    legend=:outertopright, title=titles[i]))
+    
+    end
+
+    plot(bars..., layout=(2,2), size=(800,600))
+end
+
 
 function process_costs(hist, x_ref)
     costs = zeros(size(hist.x)[2])
@@ -45,11 +69,13 @@ for n in nvals
                 push!(df_unit, (n, ft, dt, size(hists_unit[histcnt].x, 2) == simtime))
             else
                 @warn "histcnt: $histcnt is not assigned"
+                deleteat!(hists_unit, histcnt) 
             end
             if isassigned(hists_max, histcnt)
                 push!(df_max, (n, ft, dt, size(hists_max[histcnt].x, 2) == simtime))
             else
                 @warn "histcnt: $histcnt is not assigned"
+                deleteat!(hists_max, histcnt) 
             end
             if isassigned(hists_nonrobust, histcnt)
                 push!(df_nonrobust, (n, ft, dt, size(hists_nonrobust[histcnt].x, 2) == simtime))
@@ -61,6 +87,7 @@ for n in nvals
                 push!(df_consensus, (n, ft, dt, size(hists_consensus[histcnt].x, 2) == simtime))
             else
                 @warn "histcnt: $histcnt is not assigned"
+                deleteat!(hists_consensus, histcnt) 
             end
             histcnt += 1
         end
