@@ -109,38 +109,3 @@ begin "Consensus"
     totalplt = plot(hists, params) |> display
     #plot(consensus_hist.consensus) |> display
 end
-begin
-    animhist = unit_hist
-    xyz = [animhist.x'[:,[1,2]] -animhist.x'[:,3]]
-    x=xyz[:,1];y=xyz[:,2];z=xyz[:,3]
-    tsim = length(x)
-    tvec = Δt:Δt:tsim*Δt
-    maxanim = size(animhist.x)[2]
-    x=xyz[:,1];y=xyz[:,2];z=xyz[:,3]
-    zlow = extrema(z)[1]
-    plt = scatter3d(
-            xlims = extrema(x),
-            ylims = extrema(y),
-            zlims = extrema(z),
-            xlabel = "X",
-            ylabel = "Y",
-            zlabel = "Z",
-            size = (800, 600),
-            grid=true,
-            legend=false,
-            title="Max Consensus"
-        )
-    scatter3d!(plt, [x_ref[1]], [x_ref[2]], [-x_ref[3]], color="green")
-    anim = @animate for i=1:maxanim
-        scatter3d!(plt, [x[i]], [y[i]], [z[i]],
-            xlims=(-7,7),
-            ylims=(-7,7),
-            zlims=(-15,5),
-            camera = (40, 30),
-            #color = i>partialtime ? "green" : "red"
-            color = i>failtime ? "blue" : "red"
-            )
-        scatter3d!(plt, [x[i]], [y[i]], [zlims(plt)[1]], color="gray")
-    end
-    display(gif(anim, "anim_fps15.gif", fps=10))
-end

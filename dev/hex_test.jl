@@ -110,38 +110,87 @@ begin "Consensus"
     totalplt = plot(hists, Δt, side, ground, x_ref, Int(failtime), Int(delaytime)) |> display
     #plot(consensus_hist.consensus) |> display
 end
+
 begin
-    animhist = unit_hist
+    function draw_rectangle!(plt, vertices; color="blue", alpha=0.5)
+        # Draw the four edges of the rectangle
+        plot!(plt, [vertices[1][1], vertices[2][1]], [vertices[1][2], vertices[2][2]], [vertices[1][3], vertices[2][3]], color=color, alpha=alpha, legend=false) # Edge 1
+        plot!(plt, [vertices[2][1], vertices[3][1]], [vertices[2][2], vertices[3][2]], [vertices[2][3], vertices[3][3]], color=color, alpha=alpha, legend=false) # Edge 2
+        plot!(plt, [vertices[3][1], vertices[end][1]], [vertices[3][2], vertices[end][2]], [vertices[3][3], vertices[end][3]], color=color, alpha=alpha, legend=false) # Edge 3
+        plot!(plt, [vertices[end][1], vertices[1][1]], [vertices[end][2], vertices[1][2]], [vertices[end][3], vertices[1][3]], color=color, alpha=alpha, legend=false) # Edge 4
+    end
+    
+    hist_colors = [:cyan3, :maroon3, :blue, :gold2]
+    rectangles_vertices = [
+        [(-1, -1, -6), (1, -1, -6), (1, -1, 0), (-1, -1, 0)],
+        [(1, -1, -6), (1, 1, -6), (1, 1, 0), (1, -1, 0)],
+        [(-1, 1, -6), (1, 1, -6), (1, 1, 0), (-1, 1, 0)],
+        [(-1, -1, -6), (-1, 1, -6), (-1, 1, 0), (-1, -1, 0)],
+        [(-1, -1, -6), (1, -1, -6), (1, 1, -6), (-1, 1, -6)],
+    ]
+
+    animhist = consensus_hist
     xyz = [animhist.x'[:,[1,2]] -animhist.x'[:,3]]
-    x=xyz[:,1];y=xyz[:,2];z=xyz[:,3]
+    x_con=xyz[:,1];y_con=xyz[:,2];z_con=xyz[:,3]
+    feasvec_con = [info.feas for info ∈ unit_hist.info]
+
+    xyz_full = [full_hist.x'[:,[1,2]] -full_hist.x'[:,3]]
+    x_full=xyz_full[:,1];y_full=xyz_full[:,2];z_full=xyz_full[:,3]
+
+    xyz_unit = [unit_hist.x'[:,[1,2]] -unit_hist.x'[:,3]]
+    x_unit=xyz_unit[:,1];y_unit=xyz_unit[:,2];z_unit=xyz_unit[:,3]
+
+    xyz_nonrobust = [nonrobust_hist.x'[:,[1,2]] -nonrobust_hist.x'[:,3]]
+    x_nonrobust=xyz_nonrobust[:,1];y_nonrobust=xyz_nonrobust[:,2];z_nonrobust=xyz_nonrobust[:,3]
+
+    xvec = [x_con, x_unit, x_nonrobust, x_full]
+    yvec = [y_con, y_unit, y_nonrobust, y_full]
+    zvec = [z_con, z_unit, z_nonrobust, z_full]
+
+    feasvec = [[info.feas for info ∈ hists[i].info] for i ∈ eachindex(hists)]
+
     tsim = length(x)
     tvec = Δt:Δt:tsim*Δt
     maxanim = size(animhist.x)[2]
     x=xyz[:,1];y=xyz[:,2];z=xyz[:,3]
     zlow = extrema(z)[1]
-    plt = scatter3d(
-            xlims = extrema(x),
-            ylims = extrema(y),
-            zlims = extrema(z),
+
+    pltvec = []
+    titles = ["Maximize Consensus (Ours)", "First-Step Consensus", 
+            "Non-Robust", "Full-Step Consensus"]
+    for i ∈ eachindex(hists)
+        push!(pltvec, scatter3d(
+            xlims = extrema(x_con),
+            ylims = extrema(y_con),
+            zlims = [-6,2],
             xlabel = "X",
             ylabel = "Y",
             zlabel = "Z",
-            size = (800, 600),
             grid=true,
             legend=false,
-            title="Max Consensus"
-        )
-    scatter3d!(plt, [x_ref[1]], [x_ref[2]], [-x_ref[3]], color="green")
-    anim = @animate for i=1:maxanim
-        scatter3d!(plt, [x[i]], [y[i]], [z[i]],
-            xlims=(-7,7),
-            ylims=(-7,7),
-            zlims=(-15,5),
-            camera = (40, 30),
-            #color = i>partialtime ? "green" : "red"
-            color = i>failtime ? "blue" : "red"
-            )
-        scatter3d!(plt, [x[i]], [y[i]], [zlims(plt)[1]], color="gray")
+            titlefontsize=9,
+            title=titles[i]
+        ))
+        for vertices in rectangles_vertices
+            draw_rectangle!(pltvec[i], vertices, color="red", alpha=0.5)
+        end
+        scatter3d!(pltvec[i], [x_ref[1]], [x_ref[2]], [x_ref[3]], color="green")
     end
-    display(gif(anim, "anim_fps15.gif", fps=10))
+   
+    anim = @animate for i=1:maxanim
+        layout = @layout [a b c d]
+        for j in eachindex(hists)
+            scatter3d!(pltvec[j], [xvec[j][i]], [yvec[j][i]], [zvec[j][i]],
+                xlims=(-2,2),
+                ylims=(-2,2),
+                zlims=(-8,2),
+                camera = (20, 20),
+                color = hist_colors[j],
+                opacity = feasvec[j][i] ? 0.5 : 0.1
+            )
+        end
+        
+        plot(pltvec[1], pltvec[2], pltvec[3], pltvec[4], layout=layout, size=(900, 300))
+    end
+    display(gif(anim, "hex_anim.gif", fps=10))
 end
